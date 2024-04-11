@@ -11,3 +11,4 @@
 package-lock.json
 tajs.properties
 *.iml
+/.gradle
