@@ -74,7 +74,8 @@ public class State implements IState<State, Context, CallEdge> {
      */
     private Map<ObjectLabel, Obj> store;
 
-    private Obj store_default; // either the none obj (for program entry) or the unknown obj (all other locations)
+    private Obj store_default; // either the none obj (for program entry) or the unknown obj (all other
+                               // locations)
 
     private boolean writable_store; // for copy-on-write
 
@@ -97,7 +98,8 @@ public class State implements IState<State, Context, CallEdge> {
     private boolean writable_execution_context; // for copy-on-write
 
     /**
-     * Maybe/definitely summarized objects since function entry. (Contains the singleton object labels.)
+     * Maybe/definitely summarized objects since function entry. (Contains the
+     * singleton object labels.)
      */
     private Summarized summarized;
 
@@ -136,7 +138,8 @@ public class State implements IState<State, Context, CallEdge> {
     /**
      * Constructs a new none-state (representing the empty set of concrete states).
      */
-    public State(GenericSolver<State, Context, CallEdge, ? extends ILatticeMonitoring, ?>.SolverInterface c, BasicBlock block) {
+    public State(GenericSolver<State, Context, CallEdge, ? extends ILatticeMonitoring, ?>.SolverInterface c,
+            BasicBlock block) {
         this.c = c;
         this.block = block;
         summarized = new Summarized();
@@ -177,33 +180,33 @@ public class State implements IState<State, Context, CallEdge> {
         extras = new StateExtras(x.extras);
         must_reaching_defs = new MustReachingDefs(x.must_reaching_defs);
         must_equals = new MustEquals(x.must_equals);
-//        if (Options.get().isCopyOnWriteDisabled()) {
-            store = newMap();
-            for (Map.Entry<ObjectLabel, Obj> xs : x.store.entrySet()) {
-                Obj obj =  Canonicalizer.get().canonicalizeViaImmutableBox(xs.getValue().freeze());
-                writeToStore(xs.getKey(), obj);
-                xs.setValue(obj); // write back canonicalized object
-            }
-            basis_store = x.basis_store;
-            writable_store = true;
-            execution_context = x.execution_context.clone();
-            registers = newList(x.registers);
-            writable_registers = true;
-            stacked_objlabels = newSet(x.stacked_objlabels);
-            stacked_funentries = newSet(x.stacked_funentries);
-            writable_stacked = true;
-//        } else {
-//            store = x.store;
-//            basis_store = x.basis_store;
-//            execution_context = x.execution_context;
-//            registers = x.registers;
-//            stacked_objlabels = x.stacked_objlabels;
-//            stacked_funentries = x.stacked_funentries;
-//            x.writable_execution_context = writable_execution_context = false;
-//            x.writable_store = writable_store = false;
-//            x.writable_registers = writable_registers = false;
-//            x.writable_stacked = writable_stacked = false;
-//        }
+        // if (Options.get().isCopyOnWriteDisabled()) {
+        store = newMap();
+        for (Map.Entry<ObjectLabel, Obj> xs : x.store.entrySet()) {
+            Obj obj = Canonicalizer.get().canonicalizeViaImmutableBox(xs.getValue().freeze());
+            writeToStore(xs.getKey(), obj);
+            xs.setValue(obj); // write back canonicalized object
+        }
+        basis_store = x.basis_store;
+        writable_store = true;
+        execution_context = x.execution_context.clone();
+        registers = newList(x.registers);
+        writable_registers = true;
+        stacked_objlabels = newSet(x.stacked_objlabels);
+        stacked_funentries = newSet(x.stacked_funentries);
+        writable_stacked = true;
+        // } else {
+        // store = x.store;
+        // basis_store = x.basis_store;
+        // execution_context = x.execution_context;
+        // registers = x.registers;
+        // stacked_objlabels = x.stacked_objlabels;
+        // stacked_funentries = x.stacked_funentries;
+        // x.writable_execution_context = writable_execution_context = false;
+        // x.writable_store = writable_store = false;
+        // x.writable_registers = writable_registers = false;
+        // x.writable_stacked = writable_stacked = false;
+        // }
         specializations = newMap(x.specializations);
         generalizations = newMap(x.generalizations);
     }
@@ -313,8 +316,8 @@ public class State implements IState<State, Context, CallEdge> {
             // object exists but isn't yet writable, make it writable
             obj = new Obj(obj);
             writeToStore(objlabel, obj);
-//            if (log.isDebugEnabled())
-//                log.debug("making writable object from store: " + objlabel);
+            // if (log.isDebugEnabled())
+            // log.debug("making writable object from store: " + objlabel);
         }
         if (obj == null && basis_store != null) {
             // check the basis_store
@@ -322,8 +325,8 @@ public class State implements IState<State, Context, CallEdge> {
             if (obj != null && writable) {
                 obj = new Obj(obj);
                 writeToStore(objlabel, obj);
-//                if (log.isDebugEnabled())
-//                    log.debug("making writable object from basis store: " + objlabel);
+                // if (log.isDebugEnabled())
+                // log.debug("making writable object from basis store: " + objlabel);
             }
         }
         if (obj == null) {
@@ -332,8 +335,9 @@ public class State implements IState<State, Context, CallEdge> {
             if (writable) {
                 obj = new Obj(obj);
                 writeToStore(objlabel, obj);
-//                if (log.isDebugEnabled())
-//                    log.debug("making writable object from store default: " + objlabel + " at " + block.getSourceLocation());
+                // if (log.isDebugEnabled())
+                // log.debug("making writable object from store default: " + objlabel + " at " +
+                // block.getSourceLocation());
             }
         }
         return obj;
@@ -357,7 +361,7 @@ public class State implements IState<State, Context, CallEdge> {
      * Removes objects that are equal to the default object.
      */
     public void removeObjectsEqualToDefault(boolean default_none_at_entry) {
-        for (Iterator<Map.Entry<ObjectLabel, Obj>> it = store.entrySet().iterator(); it.hasNext(); ) {
+        for (Iterator<Map.Entry<ObjectLabel, Obj>> it = store.entrySet().iterator(); it.hasNext();) {
             Map.Entry<ObjectLabel, Obj> me = it.next();
             if (me.getValue().equals(store_default)) {
                 if (log.isDebugEnabled())
@@ -511,7 +515,7 @@ public class State implements IState<State, Context, CallEdge> {
         extras.setToBottom();
         must_reaching_defs.setToBottom();
         must_equals.setToBottom();
-//        if (Options.get().isCopyOnWriteDisabled()) {
+        // if (Options.get().isCopyOnWriteDisabled()) {
         store = newMap();
         writable_store = true;
         registers = new ArrayList<>();
@@ -519,15 +523,15 @@ public class State implements IState<State, Context, CallEdge> {
         stacked_objlabels = newSet();
         stacked_funentries = newSet();
         writable_stacked = true;
-//        } else {
-//            store = Collections.emptyMap();
-//            writable_store = false;
-//            registers = Collections.emptyList();
-//            writable_registers = false;
-//            stacked_objlabels = Collections.emptySet();
-//            stacked_funentries = Collections.emptySet();
-//            writable_stacked = false;
-//        }
+        // } else {
+        // store = Collections.emptyMap();
+        // writable_store = false;
+        // registers = Collections.emptyList();
+        // writable_registers = false;
+        // stacked_objlabels = Collections.emptySet();
+        // stacked_funentries = Collections.emptySet();
+        // writable_stacked = false;
+        // }
         execution_context = new ExecutionContext();
         writable_execution_context = true;
         store_default = Obj.makeNone();
@@ -535,338 +539,404 @@ public class State implements IState<State, Context, CallEdge> {
         generalizations.clear();
     }
 
-//    /**
-//     * Sets all object properties to 'unknown'.
-//     */
-//    public void setToUnknown() { // TODO: currently unused
-//        if (!Options.get().isLazyDisabled()) {
-//            store = newMap();
-//            store_default = Obj.makeUnknown();
-//            writable_store = true;
-//            registers = Collections.emptyList();
-//            writable_registers = false;
-//        }
-//    }
+    // /**
+    // * Sets all object properties to 'unknown'.
+    // */
+    // public void setToUnknown() { // TODO: currently unused
+    // if (!Options.get().isLazyDisabled()) {
+    // store = newMap();
+    // store_default = Obj.makeUnknown();
+    // writable_store = true;
+    // registers = Collections.emptyList();
+    // writable_registers = false;
+    // }
+    // }
 
     @Override
     public boolean isBottom() {
         return execution_context.isEmpty();
     }
 
-//    /**
-//     * Merges the modified parts of other state into this one.
-//     * When both this and other write to the same location, take the least upper bound.
-//     * Also merges reads_other into reads.
-//     *
-//     * @return true if read/write conflict, i.e. writes of this overlap with reads_other or writes of other overlap with reads.
-//     */
-//    public boolean mergeForInSpecialization(State other,
-//                                            State reads,
-//                                            State reads_other,
-//                                            boolean careAboutConflicts, boolean mergeWritesWeakly, boolean overrideWrites) { // (currently unused)
-//        makeWritableStore();
-//        if (basis_store != other.basis_store)
-//            throw new AnalysisException("Not identical basis stores");
-//        if (log.isDebugEnabled()) {
-//            // assuming that store_default, execution_context, stacked_objlabels, and registers are identical in this and other
-//            if (!store_default.equals(other.store_default) ||
-//                    !execution_context.equals(other.execution_context) ||
-//                    !stacked_objlabels.equals(other.stacked_objlabels) || // FIXME: also consider stacked_funentries
-//                    !reads.store_default.equals(reads_other.store_default) ||
-//                    !reads.execution_context.equals(reads_other.execution_context) ||
-//                    !reads.stacked_objlabels.equals(reads_other.stacked_objlabels))
-//                throw new AnalysisException("Not identical store_default / execution_context / stacked_objlabels");
-//        }
-//        boolean conflict = false;
-//        if (careAboutConflicts && !(extras.equals(other.extras))) {
-//            log.debug("mergeForInSpecialization: conflict at state extras");
-//            conflict = true;
-//        }
-//        // report conflict if writes of this overlap with reads_other or writes of other overlap with reads
-//        if (careAboutConflicts && (checkReadWriteConflict(this, reads_other) || checkReadWriteConflict(other, reads))) {
-//            log.debug("mergeForInSpecialization: read/write conflict");
-//            conflict = true;
-//        }
-//        // merge reads_other into reads (if both read, take least upper bound)
-//        for (Map.Entry<ObjectLabel, Obj> me : reads_other.store.entrySet()) {
-//            ObjectLabel objlabel = me.getKey();
-//            Obj reads_other_obj = me.getValue();
-//            Obj reads_obj = reads.getObject(objlabel, true);
-//            for (Map.Entry<PKey, Value> me2 : reads_other_obj.getProperties().entrySet()) {
-//                String propertyname = me2.getKey();
-//                Value other_val = me2.getValue();
-//                if (!other_val.isUnknown()) {
-//                    Value reads_val = reads_obj.getProperty(propertyname);
-//                    Value new_reads_val = reads_val.join(other_val);
-//                    reads_obj.setProperty(propertyname, new_reads_val);
-//                }
-//            }
-//            Value reads_other_defaultarray_val = reads_other_obj.getDefaultArrayProperty();
-//            if (!reads_other_defaultarray_val.isUnknown()) {
-//                reads_obj.setDefaultArrayProperty(reads_other_defaultarray_val);
-//                // also merge with the explicit array properties in reads_obj that are not already handled
-//                for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
-//                    PKey propertyname = me2.getKey();
-//                    if (propertyname.isArrayIndex() && !reads_other_obj.getProperties().containsKey(propertyname)) {
-//                        Value reads_val = me2.getValue();
-//                        Value new_reads_val = reads_val.join(reads_other_defaultarray_val);
-//                        reads_obj.setProperty(propertyname, new_reads_val);
-//                    }
-//                }
-//            }
-//            Value reads_other_defaultnonarray_val = reads_other_obj.getDefaultNonArrayProperty();
-//            if (!reads_other_defaultnonarray_val.isUnknown()) {
-//                reads_obj.setDefaultNonArrayProperty(reads_other_defaultnonarray_val);
-//                // also merge with the explicit array properties in reads_obj that are not already handled
-//                for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
-//                    PKey propertyname = me2.getKey();
-//                    if (!propertyname.isArrayIndex() && !reads_other_obj.getProperties().containsKey(propertyname)) {
-//                        Value reads_val = me2.getValue();
-//                        Value new_reads_val = reads_val.join(reads_other_defaultnonarray_val);
-//                        reads_obj.setProperty(propertyname, new_reads_val);
-//                    }
-//                }
-//            }
-//            Value reads_other_internalprototype_val = reads_other_obj.getInternalPrototype();
-//            if (!reads_other_internalprototype_val.isUnknown()) {
-//                Value reads_internalprototype_val = reads_obj.getInternalPrototype();
-//                Value new_reads_internalprototype_val = reads_internalprototype_val.join(reads_other_internalprototype_val);
-//                reads_obj.setInternalPrototype(new_reads_internalprototype_val);
-//            }
-//            Value reads_other_internalvalue_val = reads_other_obj.getInternalValue();
-//            if (!reads_other_internalvalue_val.isUnknown()) {
-//                Value reads_internalvalue_val = reads_obj.getInternalValue();
-//                Value new_reads_internalvalue_val = reads_internalvalue_val.join(reads_other_internalvalue_val);
-//                reads_obj.setInternalValue(new_reads_internalvalue_val);
-//            }
-//            if (!reads_other_obj.isScopeChainUnknown()) {
-//                ScopeChain new_reads_scopechain;
-//                if (!reads_obj.isScopeChainUnknown()) {
-//                    new_reads_scopechain = ScopeChain.add(reads_obj.getScopeChain(), reads_other_obj.getScopeChain());
-//                } else {
-//                    new_reads_scopechain = reads_other_obj.getScopeChain();
-//                }
-//                reads_obj.setScopeChain(new_reads_scopechain);
-//            }
-//        }
-//        // merge writes of other into this (if both write, take least upper bound)
-//        for (Map.Entry<ObjectLabel, Obj> me : other.store.entrySet()) {
-//            ObjectLabel objlabel = me.getKey();
-//            Obj other_obj = me.getValue();
-//            Obj this_obj = getObject(objlabel, true);
-//            // merge properties of other_obj into this_obj
-//            for (Map.Entry<PKey, Value> me2 : other_obj.getProperties().entrySet()) {
-//                PKey propertyname = me2.getKey();
-//                Value other_val = me2.getValue();
-//                if (other_val.isMaybeModified()) {
-//                    Value this_val = this_obj.getProperty(propertyname);
-//                    Value new_this_val = mergeForInSpecializationValue(this_val, other_val, other, mergeWritesWeakly, overrideWrites);
-//                    this_obj.setProperty(propertyname, new_this_val);
-//                }
-//            }
-//            Value other_defaultarray_val = other_obj.getDefaultArrayProperty();
-//            if (other_defaultarray_val.isMaybeModified()) {
-//                Value this_defaultarray_val = this_obj.getDefaultArrayProperty();
-//                Value new_this_defaultarray_val = mergeForInSpecializationValue(this_defaultarray_val, other_defaultarray_val, other, mergeWritesWeakly, overrideWrites);
-//                this_obj.setDefaultArrayProperty(new_this_defaultarray_val);
-//                // also merge with the explicit array properties in this_obj that are not already handled
-//                for (Map.Entry<PKey, Value> me2 : this_obj.getProperties().entrySet()) {
-//                    PKey propertyname = me2.getKey();
-//                    if (propertyname.isArrayIndex() && !other_obj.getProperties().containsKey(propertyname)) {
-//                        Value this_val = me2.getValue();
-//                        Value new_this_val = mergeForInSpecializationValue(this_val, other_defaultarray_val, other, mergeWritesWeakly, overrideWrites);
-//                        this_obj.setProperty(propertyname, new_this_val);
-//                    }
-//                }
-//            }
-//            Value other_defaultnonarray_val = other_obj.getDefaultNonArrayProperty();
-//            if (other_defaultnonarray_val.isMaybeModified()) {
-//                Value this_defaultnonarray_val = this_obj.getDefaultNonArrayProperty();
-//                Value new_this_defaultnonarray_val = mergeForInSpecializationValue(this_defaultnonarray_val, other_defaultnonarray_val, other, mergeWritesWeakly, overrideWrites);
-//                this_obj.setDefaultNonArrayProperty(new_this_defaultnonarray_val);
-//                // also merge with the explicit array properties in this_obj that are not already handled
-//                for (Map.Entry<PKey, Value> me2 : this_obj.getProperties().entrySet()) {
-//                    PKey propertyname = me2.getKey();
-//                    if (!propertyname.isArrayIndex() && !other_obj.getProperties().containsKey(propertyname)) {
-//                        Value this_val = me2.getValue();
-//                        Value new_this_val = mergeForInSpecializationValue(this_val, other_defaultarray_val, other, mergeWritesWeakly, overrideWrites);
-//                        this_obj.setProperty(propertyname, new_this_val);
-//                    }
-//                }
-//            }
-//            Value other_internalprototype_val = other_obj.getInternalPrototype();
-//            if (other_internalprototype_val.isMaybeModified()) {
-//                Value this_internalprototype_val = this_obj.getInternalPrototype();
-//                Value new_this_internalprototype_val = mergeForInSpecializationValue(this_internalprototype_val, other_internalprototype_val, other, mergeWritesWeakly, overrideWrites);
-//                this_obj.setInternalPrototype(new_this_internalprototype_val);
-//            }
-//            Value other_internalvalue_val = other_obj.getInternalValue();
-//            if (other_internalvalue_val.isMaybeModified()) {
-//                Value this_internalvalue_val = this_obj.getInternalValue();
-//                Value new_this_internalvalue_val = mergeForInSpecializationValue(this_internalvalue_val, other_internalvalue_val, other, mergeWritesWeakly, overrideWrites);
-//                this_obj.setInternalValue(new_this_internalvalue_val);
-//            }
-//            if (!other_obj.isScopeChainUnknown()) {
-//                ScopeChain new_this_scopechain;
-//                if (!this_obj.isScopeChainUnknown()) {
-//                    new_this_scopechain = ScopeChain.add(this_obj.getScopeChain(), other_obj.getScopeChain());
-//                } else {
-//                    new_this_scopechain = other_obj.getScopeChain();
-//                }
-//                this_obj.setScopeChain(new_this_scopechain);
-//            }
-//        }
-//        summarized.getMaybeSummarized().addAll(other.summarized.getMaybeSummarized());
-//        summarized.getDefinitelySummarized().addAll(other.summarized.getDefinitelySummarized());
-//        return conflict;
-//    }
+    // /**
+    // * Merges the modified parts of other state into this one.
+    // * When both this and other write to the same location, take the least upper
+    // bound.
+    // * Also merges reads_other into reads.
+    // *
+    // * @return true if read/write conflict, i.e. writes of this overlap with
+    // reads_other or writes of other overlap with reads.
+    // */
+    // public boolean mergeForInSpecialization(State other,
+    // State reads,
+    // State reads_other,
+    // boolean careAboutConflicts, boolean mergeWritesWeakly, boolean
+    // overrideWrites) { // (currently unused)
+    // makeWritableStore();
+    // if (basis_store != other.basis_store)
+    // throw new AnalysisException("Not identical basis stores");
+    // if (log.isDebugEnabled()) {
+    // // assuming that store_default, execution_context, stacked_objlabels, and
+    // registers are identical in this and other
+    // if (!store_default.equals(other.store_default) ||
+    // !execution_context.equals(other.execution_context) ||
+    // !stacked_objlabels.equals(other.stacked_objlabels) || // FIXME: also consider
+    // stacked_funentries
+    // !reads.store_default.equals(reads_other.store_default) ||
+    // !reads.execution_context.equals(reads_other.execution_context) ||
+    // !reads.stacked_objlabels.equals(reads_other.stacked_objlabels))
+    // throw new AnalysisException("Not identical store_default / execution_context
+    // / stacked_objlabels");
+    // }
+    // boolean conflict = false;
+    // if (careAboutConflicts && !(extras.equals(other.extras))) {
+    // log.debug("mergeForInSpecialization: conflict at state extras");
+    // conflict = true;
+    // }
+    // // report conflict if writes of this overlap with reads_other or writes of
+    // other overlap with reads
+    // if (careAboutConflicts && (checkReadWriteConflict(this, reads_other) ||
+    // checkReadWriteConflict(other, reads))) {
+    // log.debug("mergeForInSpecialization: read/write conflict");
+    // conflict = true;
+    // }
+    // // merge reads_other into reads (if both read, take least upper bound)
+    // for (Map.Entry<ObjectLabel, Obj> me : reads_other.store.entrySet()) {
+    // ObjectLabel objlabel = me.getKey();
+    // Obj reads_other_obj = me.getValue();
+    // Obj reads_obj = reads.getObject(objlabel, true);
+    // for (Map.Entry<PKey, Value> me2 : reads_other_obj.getProperties().entrySet())
+    // {
+    // String propertyname = me2.getKey();
+    // Value other_val = me2.getValue();
+    // if (!other_val.isUnknown()) {
+    // Value reads_val = reads_obj.getProperty(propertyname);
+    // Value new_reads_val = reads_val.join(other_val);
+    // reads_obj.setProperty(propertyname, new_reads_val);
+    // }
+    // }
+    // Value reads_other_defaultarray_val =
+    // reads_other_obj.getDefaultArrayProperty();
+    // if (!reads_other_defaultarray_val.isUnknown()) {
+    // reads_obj.setDefaultArrayProperty(reads_other_defaultarray_val);
+    // // also merge with the explicit array properties in reads_obj that are not
+    // already handled
+    // for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // if (propertyname.isArrayIndex() &&
+    // !reads_other_obj.getProperties().containsKey(propertyname)) {
+    // Value reads_val = me2.getValue();
+    // Value new_reads_val = reads_val.join(reads_other_defaultarray_val);
+    // reads_obj.setProperty(propertyname, new_reads_val);
+    // }
+    // }
+    // }
+    // Value reads_other_defaultnonarray_val =
+    // reads_other_obj.getDefaultNonArrayProperty();
+    // if (!reads_other_defaultnonarray_val.isUnknown()) {
+    // reads_obj.setDefaultNonArrayProperty(reads_other_defaultnonarray_val);
+    // // also merge with the explicit array properties in reads_obj that are not
+    // already handled
+    // for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // if (!propertyname.isArrayIndex() &&
+    // !reads_other_obj.getProperties().containsKey(propertyname)) {
+    // Value reads_val = me2.getValue();
+    // Value new_reads_val = reads_val.join(reads_other_defaultnonarray_val);
+    // reads_obj.setProperty(propertyname, new_reads_val);
+    // }
+    // }
+    // }
+    // Value reads_other_internalprototype_val =
+    // reads_other_obj.getInternalPrototype();
+    // if (!reads_other_internalprototype_val.isUnknown()) {
+    // Value reads_internalprototype_val = reads_obj.getInternalPrototype();
+    // Value new_reads_internalprototype_val =
+    // reads_internalprototype_val.join(reads_other_internalprototype_val);
+    // reads_obj.setInternalPrototype(new_reads_internalprototype_val);
+    // }
+    // Value reads_other_internalvalue_val = reads_other_obj.getInternalValue();
+    // if (!reads_other_internalvalue_val.isUnknown()) {
+    // Value reads_internalvalue_val = reads_obj.getInternalValue();
+    // Value new_reads_internalvalue_val =
+    // reads_internalvalue_val.join(reads_other_internalvalue_val);
+    // reads_obj.setInternalValue(new_reads_internalvalue_val);
+    // }
+    // if (!reads_other_obj.isScopeChainUnknown()) {
+    // ScopeChain new_reads_scopechain;
+    // if (!reads_obj.isScopeChainUnknown()) {
+    // new_reads_scopechain = ScopeChain.add(reads_obj.getScopeChain(),
+    // reads_other_obj.getScopeChain());
+    // } else {
+    // new_reads_scopechain = reads_other_obj.getScopeChain();
+    // }
+    // reads_obj.setScopeChain(new_reads_scopechain);
+    // }
+    // }
+    // // merge writes of other into this (if both write, take least upper bound)
+    // for (Map.Entry<ObjectLabel, Obj> me : other.store.entrySet()) {
+    // ObjectLabel objlabel = me.getKey();
+    // Obj other_obj = me.getValue();
+    // Obj this_obj = getObject(objlabel, true);
+    // // merge properties of other_obj into this_obj
+    // for (Map.Entry<PKey, Value> me2 : other_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // Value other_val = me2.getValue();
+    // if (other_val.isMaybeModified()) {
+    // Value this_val = this_obj.getProperty(propertyname);
+    // Value new_this_val = mergeForInSpecializationValue(this_val, other_val,
+    // other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setProperty(propertyname, new_this_val);
+    // }
+    // }
+    // Value other_defaultarray_val = other_obj.getDefaultArrayProperty();
+    // if (other_defaultarray_val.isMaybeModified()) {
+    // Value this_defaultarray_val = this_obj.getDefaultArrayProperty();
+    // Value new_this_defaultarray_val =
+    // mergeForInSpecializationValue(this_defaultarray_val, other_defaultarray_val,
+    // other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setDefaultArrayProperty(new_this_defaultarray_val);
+    // // also merge with the explicit array properties in this_obj that are not
+    // already handled
+    // for (Map.Entry<PKey, Value> me2 : this_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // if (propertyname.isArrayIndex() &&
+    // !other_obj.getProperties().containsKey(propertyname)) {
+    // Value this_val = me2.getValue();
+    // Value new_this_val = mergeForInSpecializationValue(this_val,
+    // other_defaultarray_val, other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setProperty(propertyname, new_this_val);
+    // }
+    // }
+    // }
+    // Value other_defaultnonarray_val = other_obj.getDefaultNonArrayProperty();
+    // if (other_defaultnonarray_val.isMaybeModified()) {
+    // Value this_defaultnonarray_val = this_obj.getDefaultNonArrayProperty();
+    // Value new_this_defaultnonarray_val =
+    // mergeForInSpecializationValue(this_defaultnonarray_val,
+    // other_defaultnonarray_val, other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setDefaultNonArrayProperty(new_this_defaultnonarray_val);
+    // // also merge with the explicit array properties in this_obj that are not
+    // already handled
+    // for (Map.Entry<PKey, Value> me2 : this_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // if (!propertyname.isArrayIndex() &&
+    // !other_obj.getProperties().containsKey(propertyname)) {
+    // Value this_val = me2.getValue();
+    // Value new_this_val = mergeForInSpecializationValue(this_val,
+    // other_defaultarray_val, other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setProperty(propertyname, new_this_val);
+    // }
+    // }
+    // }
+    // Value other_internalprototype_val = other_obj.getInternalPrototype();
+    // if (other_internalprototype_val.isMaybeModified()) {
+    // Value this_internalprototype_val = this_obj.getInternalPrototype();
+    // Value new_this_internalprototype_val =
+    // mergeForInSpecializationValue(this_internalprototype_val,
+    // other_internalprototype_val, other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setInternalPrototype(new_this_internalprototype_val);
+    // }
+    // Value other_internalvalue_val = other_obj.getInternalValue();
+    // if (other_internalvalue_val.isMaybeModified()) {
+    // Value this_internalvalue_val = this_obj.getInternalValue();
+    // Value new_this_internalvalue_val =
+    // mergeForInSpecializationValue(this_internalvalue_val,
+    // other_internalvalue_val, other, mergeWritesWeakly, overrideWrites);
+    // this_obj.setInternalValue(new_this_internalvalue_val);
+    // }
+    // if (!other_obj.isScopeChainUnknown()) {
+    // ScopeChain new_this_scopechain;
+    // if (!this_obj.isScopeChainUnknown()) {
+    // new_this_scopechain = ScopeChain.add(this_obj.getScopeChain(),
+    // other_obj.getScopeChain());
+    // } else {
+    // new_this_scopechain = other_obj.getScopeChain();
+    // }
+    // this_obj.setScopeChain(new_this_scopechain);
+    // }
+    // }
+    // summarized.getMaybeSummarized().addAll(other.summarized.getMaybeSummarized());
+    // summarized.getDefinitelySummarized().addAll(other.summarized.getDefinitelySummarized());
+    // return conflict;
+    // }
 
-//    /**
-//     * Checks whether modified parts of the writes store overlap with the non-unknown parts of the reads store.
-//     *
-//     * @return true if conflict
-//     */
-//    private static boolean checkReadWriteConflict(State writes, State reads) { // (currently unused)
-//        for (Map.Entry<ObjectLabel, Obj> me : writes.store.entrySet()) {
-//            ObjectLabel objlabel = me.getKey();
-//            Obj writes_obj = me.getValue();
-//            Obj reads_obj = reads.getObject(objlabel, true);
-//            for (Map.Entry<PKey, Value> me2 : writes_obj.getProperties().entrySet()) {
-//                PKey propertyname = me2.getKey();
-//                Value writes_val = me2.getValue();
-//                if (writes_val.isMaybeModified()) {
-//                    Value reads_val = reads_obj.getProperty(propertyname);
-//                    if (checkReadWriteConflictValue(writes_val, reads_val)) {
-//                        if (log.isDebugEnabled())
-//                            log.debug("checkReadWriteConflict: writing " + writes_val + " reading " + reads_val + " from " + objlabel + "." + propertyname);
-//                        return true;
-//                    }
-//                }
-//            }
-//            Value writes_defaultarray_val = writes_obj.getDefaultArrayProperty();
-//            if (writes_defaultarray_val.isMaybeModified()) {
-//                Value reads_defaultarray_val = reads_obj.getDefaultArrayProperty();
-//                if (checkReadWriteConflictValue(writes_defaultarray_val, reads_defaultarray_val)) {
-//                    if (log.isDebugEnabled())
-//                        log.debug("checkReadWriteConflict: writing " + writes_defaultarray_val + " reading " + reads_defaultarray_val + " from " + objlabel + ".[[defaultarray]]");
-//                    return true;
-//                }
-//                // also check the explicit array properties in reads_obj that are not already handled
-//                for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
-//                    PKey propertyname = me2.getKey();
-//                    if (propertyname.isArrayIndex() && !writes_obj.getProperties().containsKey(propertyname)) {
-//                        Value reads_val = me2.getValue();
-//                        if (checkReadWriteConflictValue(writes_defaultarray_val, reads_val)) {
-//                            if (log.isDebugEnabled())
-//                                log.debug("checkReadWriteConflict: writing " + writes_defaultarray_val + " reading " + reads_val + " from " + objlabel + "." + propertyname);
-//                            return true;
-//                        }
-//                    }
-//                }
-//            }
-//            Value writes_defaultnonarray_val = writes_obj.getDefaultNonArrayProperty();
-//            if (writes_defaultnonarray_val.isMaybeModified()) {
-//                Value reads_defaultnonarray_val = reads_obj.getDefaultNonArrayProperty();
-//                if (checkReadWriteConflictValue(writes_defaultnonarray_val, reads_defaultnonarray_val)) {
-//                    if (log.isDebugEnabled())
-//                        log.debug("checkReadWriteConflict: writing " + writes_defaultnonarray_val + " reading " + reads_defaultnonarray_val + " from " + objlabel + ".[[defaultnonarray]]");
-//                    return true;
-//                }
-//                // also check the explicit nonarray properties in reads_obj that are not already handled
-//                for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
-//                    PKey propertyname = me2.getKey();
-//                    if (!propertyname.isArrayIndex() && !writes_obj.getProperties().containsKey(propertyname)) {
-//                        Value reads_val = me2.getValue();
-//                        if (checkReadWriteConflictValue(writes_defaultnonarray_val, reads_val)) {
-//                            if (log.isDebugEnabled())
-//                                log.debug("checkReadWriteConflict: writing " + writes_defaultnonarray_val + " reading " + reads_val + " from " + objlabel + "." + propertyname);
-//                            return true;
-//                        }
-//                    }
-//                }
-//            }
-//            Value writes_internalprototype_val = writes_obj.getInternalPrototype();
-//            if (writes_internalprototype_val.isMaybeModified()) {
-//                Value reads_internalprototype_val = reads_obj.getInternalPrototype();
-//                if (checkReadWriteConflictValue(writes_internalprototype_val, reads_internalprototype_val)) {
-//                    if (log.isDebugEnabled())
-//                        log.debug("checkReadWriteConflict: writing " + writes_internalprototype_val + " reading " + reads_internalprototype_val + " from " + objlabel + ".[[Prototype]]");
-//                    return true;
-//                }
-//            }
-//            Value writes_internalvalue_val = writes_obj.getInternalValue();
-//            if (writes_internalvalue_val.isMaybeModified()) {
-//                Value reads_internalvalue_val = reads_obj.getInternalValue();
-//                if (checkReadWriteConflictValue(writes_internalvalue_val, reads_internalvalue_val)) {
-//                    if (log.isDebugEnabled())
-//                        log.debug("checkReadWriteConflict: writing " + writes_internalvalue_val + " reading " + reads_internalvalue_val + " from " + objlabel + ".[[Value]]");
-//                    return true;
-//                }
-//            }
-//            if (!writes_obj.isScopeChainUnknown()) {
-//                if (!reads_obj.isScopeChainUnknown()) {
-//                    if (log.isDebugEnabled())
-//                        log.debug("checkReadWriteConflict: writing " + writes_obj.getScopeChain() + " reading " + reads_obj.getScopeChain() + " from " + objlabel + ".[[Scope]]");
-//                    return checkReadWriteConflictScopeChain(writes_obj.getScopeChain(), reads_obj.getScopeChain());
-//                }
-//            }
-//        }
-//        return false;
-//    }
+    // /**
+    // * Checks whether modified parts of the writes store overlap with the
+    // non-unknown parts of the reads store.
+    // *
+    // * @return true if conflict
+    // */
+    // private static boolean checkReadWriteConflict(State writes, State reads) { //
+    // (currently unused)
+    // for (Map.Entry<ObjectLabel, Obj> me : writes.store.entrySet()) {
+    // ObjectLabel objlabel = me.getKey();
+    // Obj writes_obj = me.getValue();
+    // Obj reads_obj = reads.getObject(objlabel, true);
+    // for (Map.Entry<PKey, Value> me2 : writes_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // Value writes_val = me2.getValue();
+    // if (writes_val.isMaybeModified()) {
+    // Value reads_val = reads_obj.getProperty(propertyname);
+    // if (checkReadWriteConflictValue(writes_val, reads_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_val + " reading " +
+    // reads_val + " from " + objlabel + "." + propertyname);
+    // return true;
+    // }
+    // }
+    // }
+    // Value writes_defaultarray_val = writes_obj.getDefaultArrayProperty();
+    // if (writes_defaultarray_val.isMaybeModified()) {
+    // Value reads_defaultarray_val = reads_obj.getDefaultArrayProperty();
+    // if (checkReadWriteConflictValue(writes_defaultarray_val,
+    // reads_defaultarray_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_defaultarray_val + "
+    // reading " + reads_defaultarray_val + " from " + objlabel +
+    // ".[[defaultarray]]");
+    // return true;
+    // }
+    // // also check the explicit array properties in reads_obj that are not already
+    // handled
+    // for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // if (propertyname.isArrayIndex() &&
+    // !writes_obj.getProperties().containsKey(propertyname)) {
+    // Value reads_val = me2.getValue();
+    // if (checkReadWriteConflictValue(writes_defaultarray_val, reads_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_defaultarray_val + "
+    // reading " + reads_val + " from " + objlabel + "." + propertyname);
+    // return true;
+    // }
+    // }
+    // }
+    // }
+    // Value writes_defaultnonarray_val = writes_obj.getDefaultNonArrayProperty();
+    // if (writes_defaultnonarray_val.isMaybeModified()) {
+    // Value reads_defaultnonarray_val = reads_obj.getDefaultNonArrayProperty();
+    // if (checkReadWriteConflictValue(writes_defaultnonarray_val,
+    // reads_defaultnonarray_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_defaultnonarray_val + "
+    // reading " + reads_defaultnonarray_val + " from " + objlabel +
+    // ".[[defaultnonarray]]");
+    // return true;
+    // }
+    // // also check the explicit nonarray properties in reads_obj that are not
+    // already handled
+    // for (Map.Entry<PKey, Value> me2 : reads_obj.getProperties().entrySet()) {
+    // PKey propertyname = me2.getKey();
+    // if (!propertyname.isArrayIndex() &&
+    // !writes_obj.getProperties().containsKey(propertyname)) {
+    // Value reads_val = me2.getValue();
+    // if (checkReadWriteConflictValue(writes_defaultnonarray_val, reads_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_defaultnonarray_val + "
+    // reading " + reads_val + " from " + objlabel + "." + propertyname);
+    // return true;
+    // }
+    // }
+    // }
+    // }
+    // Value writes_internalprototype_val = writes_obj.getInternalPrototype();
+    // if (writes_internalprototype_val.isMaybeModified()) {
+    // Value reads_internalprototype_val = reads_obj.getInternalPrototype();
+    // if (checkReadWriteConflictValue(writes_internalprototype_val,
+    // reads_internalprototype_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_internalprototype_val +
+    // " reading " + reads_internalprototype_val + " from " + objlabel +
+    // ".[[Prototype]]");
+    // return true;
+    // }
+    // }
+    // Value writes_internalvalue_val = writes_obj.getInternalValue();
+    // if (writes_internalvalue_val.isMaybeModified()) {
+    // Value reads_internalvalue_val = reads_obj.getInternalValue();
+    // if (checkReadWriteConflictValue(writes_internalvalue_val,
+    // reads_internalvalue_val)) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_internalvalue_val + "
+    // reading " + reads_internalvalue_val + " from " + objlabel + ".[[Value]]");
+    // return true;
+    // }
+    // }
+    // if (!writes_obj.isScopeChainUnknown()) {
+    // if (!reads_obj.isScopeChainUnknown()) {
+    // if (log.isDebugEnabled())
+    // log.debug("checkReadWriteConflict: writing " + writes_obj.getScopeChain() + "
+    // reading " + reads_obj.getScopeChain() + " from " + objlabel + ".[[Scope]]");
+    // return checkReadWriteConflictScopeChain(writes_obj.getScopeChain(),
+    // reads_obj.getScopeChain());
+    // }
+    // }
+    // }
+    // return false;
+    // }
 
-//    /**
-//     * Checks whether the written value may affect the read value.
-//     *
-//     * @return true if potential conflict, false if definitely no conflict
-//     */
-//    private static boolean checkReadWriteConflictValue(Value writes_val, Value reads_val) { // (currently unused)
-//        if (reads_val.isUnknown()) { // if reads_val is 'unknown', the location has not been read
-//            return false;
-//        }
-//        if (reads_val.isPolymorphic()) { // if reads_val is a polymorphic value, the location has been partially read (i.e. only its attributes)
-//            return !writes_val.lessEqualAttributes(reads_val);
-//        }
-//        return !writes_val.lessEqual(reads_val);
-//    }
+    // /**
+    // * Checks whether the written value may affect the read value.
+    // *
+    // * @return true if potential conflict, false if definitely no conflict
+    // */
+    // private static boolean checkReadWriteConflictValue(Value writes_val, Value
+    // reads_val) { // (currently unused)
+    // if (reads_val.isUnknown()) { // if reads_val is 'unknown', the location has
+    // not been read
+    // return false;
+    // }
+    // if (reads_val.isPolymorphic()) { // if reads_val is a polymorphic value, the
+    // location has been partially read (i.e. only its attributes)
+    // return !writes_val.lessEqualAttributes(reads_val);
+    // }
+    // return !writes_val.lessEqual(reads_val);
+    // }
 
-//    /**
-//     * Checks whether the written value may affect the read value.
-//     *
-//     * @return true if potential conflict, false if definitely no conflict
-//     */
-//    private static boolean checkReadWriteConflictScopeChain(ScopeChain writes_scope, ScopeChain reads_scope) { // (currently unused)
-//        return !((writes_scope == null && reads_scope == null) || (writes_scope != null && writes_scope.equals(reads_scope)));
-//    }
+    // /**
+    // * Checks whether the written value may affect the read value.
+    // *
+    // * @return true if potential conflict, false if definitely no conflict
+    // */
+    // private static boolean checkReadWriteConflictScopeChain(ScopeChain
+    // writes_scope, ScopeChain reads_scope) { // (currently unused)
+    // return !((writes_scope == null && reads_scope == null) || (writes_scope !=
+    // null && writes_scope.equals(reads_scope)));
+    // }
 
-//    /**
-//     * Merges this value with the other value.
-//     * Assumes that the other value is maybe modified.
-//     * This value is ignored if it is not maybe modified.
-//     */
-//    private Value mergeForInSpecializationValue(Value this_val, Value other_val, State other, boolean mergeWritesWeakly, boolean overrideWrites) { // (currently unused)
-//        Value new_this_val;
-//        if (!overrideWrites && (mergeWritesWeakly || this_val.isMaybeModified())) {
-//            // maybe modified in this state and in other state, so join the two values
-//            this_val = UnknownValueResolver.getRealValue(this_val, this);
-//            other_val = UnknownValueResolver.getRealValue(other_val, other);
-//            new_this_val = this_val.join(other_val);
-//        } else {
-//            // not modified in this state, so get the value directly from the other state
-//            new_this_val = other_val;
-//        }
-//        return new_this_val;
-//    }
+    // /**
+    // * Merges this value with the other value.
+    // * Assumes that the other value is maybe modified.
+    // * This value is ignored if it is not maybe modified.
+    // */
+    // private Value mergeForInSpecializationValue(Value this_val, Value other_val,
+    // State other, boolean mergeWritesWeakly, boolean overrideWrites) { //
+    // (currently unused)
+    // Value new_this_val;
+    // if (!overrideWrites && (mergeWritesWeakly || this_val.isMaybeModified())) {
+    // // maybe modified in this state and in other state, so join the two values
+    // this_val = UnknownValueResolver.getRealValue(this_val, this);
+    // other_val = UnknownValueResolver.getRealValue(other_val, other);
+    // new_this_val = this_val.join(other_val);
+    // } else {
+    // // not modified in this state, so get the value directly from the other state
+    // new_this_val = other_val;
+    // }
+    // return new_this_val;
+    // }
 
     /**
      * Propagates the given state into this state.
      * Replaces 'unknown' and polymorphic values when necessary.
      * Assumes that the states belong to the same block and context.
      *
-     * @return true if an object changed (note there may be other changes due to recoveries)
+     * @return true if an object changed (note there may be other changes due to
+     *         recoveries)
      */
     @Override
     public boolean propagate(State s, boolean funentry, boolean widen) {
-        if (Options.get().isDebugOrTestEnabled() && !store_default.isAllNone() && !s.store_default.isAllNone() && !store_default.equals(s.store_default))
+        if (Options.get().isDebugOrTestEnabled() && !store_default.isAllNone() && !s.store_default.isAllNone()
+                && !store_default.equals(s.store_default))
             throw new AnalysisException("Expected store default objects to be equal");
         if (log.isDebugEnabled() && Options.get().isIntermediateStatesEnabled()) {
             log.debug("join this state: " + this);
@@ -901,13 +971,15 @@ public class State implements IState<State, Context, CallEdge> {
         changed |= must_equals.propagate(s.must_equals);
         changed |= summarized.join(s.summarized);
         for (Map.Entry<ObjectLabel, Set<ObjectLabel>> spec : s.specializations.entrySet()) {
-            if (!(specializations.containsKey(spec.getKey()) && specializations.get(spec.getKey()).containsAll(spec.getValue()))) {
+            if (!(specializations.containsKey(spec.getKey())
+                    && specializations.get(spec.getKey()).containsAll(spec.getValue()))) {
                 addAllToMapSet(specializations, spec.getKey(), spec.getValue());
                 changed = true;
             }
         }
         for (Map.Entry<ObjectLabel, ObjectLabel> generalization : s.generalizations.entrySet()) {
-            if (!(generalizations.containsKey(generalization.getKey()) && generalizations.get(generalization.getKey()).equals(generalization.getValue()))) {
+            if (!(generalizations.containsKey(generalization.getKey())
+                    && generalizations.get(generalization.getKey()).equals(generalization.getValue()))) {
                 generalizations.put(generalization.getKey(), generalization.getValue());
                 changed = true;
             }
@@ -953,17 +1025,21 @@ public class State implements IState<State, Context, CallEdge> {
      * Replaces 'unknown' and polymorphic values when necessary.
      * Assumes that the states belong to the same block and context.
      *
-     * @param modified if true, set modified flag on written values
-     * @return true if the object changed (note there may be other changes due to recoveries)
+     * @param modified
+     *                     if true, set modified flag on written values
+     * @return true if the object changed (note there may be other changes due to
+     *         recoveries)
      */
-    public boolean propagateObj(ObjectLabel objlabel_to, State state_from, ObjectLabel objlabel_from, boolean modified, boolean widen) {
+    public boolean propagateObj(ObjectLabel objlabel_to, State state_from, ObjectLabel objlabel_from, boolean modified,
+            boolean widen) {
         Obj obj_from = state_from.getObject(objlabel_from, false);
         Obj obj_to = getObject(objlabel_to, false);
         if (obj_from == obj_to && !modified) {
             // identical objects, so nothing to do
             return false;
         }
-        if (obj_from.isAllNone()) { // may be a call edge or function entry state where not all properties have been propagated, so don't use isSomeNone here
+        if (obj_from.isAllNone()) { // may be a call edge or function entry state where not all properties have been
+                                    // propagated, so don't use isSomeNone here
             // obj_from object is none, so nothing to do
             return false;
         }
@@ -976,7 +1052,8 @@ public class State implements IState<State, Context, CallEdge> {
             if (default_numeric_property_to.isUnknown())
                 default_numeric_property_to = UnknownValueResolver.getDefaultNumericProperty(objlabel_to, this);
             if (default_numeric_property_from.isUnknown())
-                default_numeric_property_from = UnknownValueResolver.getDefaultNumericProperty(objlabel_from, state_from);
+                default_numeric_property_from = UnknownValueResolver.getDefaultNumericProperty(objlabel_from,
+                        state_from);
             default_numeric_property_to = default_numeric_property_to.join(default_numeric_property_from, widen);
             if (modified)
                 default_numeric_property_to = default_numeric_property_to.joinModified();
@@ -1005,18 +1082,21 @@ public class State implements IState<State, Context, CallEdge> {
                 changed = true;
             }
         }
-        obj_from = state_from.getObject(objlabel_from, false); // propagating defaults may have materialized properties, so get the latest version
+        obj_from = state_from.getObject(objlabel_from, false); // propagating defaults may have materialized properties,
+                                                               // so get the latest version
         for (PKey propertyname : obj_from.getProperties().keySet()) {
             if (!obj_to.getProperties().containsKey(propertyname)) {
-                Value v = propertyname.isNumeric() ? default_numeric_property_to_original : default_other_property_to_original;
+                Value v = propertyname.isNumeric() ? default_numeric_property_to_original
+                        : default_other_property_to_original;
                 if (!obj_to.isWritable())
                     obj_to = getObject(objlabel_to, true);
                 obj_to.setProperty(propertyname, v); // materializing from default doesn't affect 'changed'
-//                if (log.isDebugEnabled())
-//                  log.debug("Materialized " + objlabel_to + "." + propertyname + " = " + v);
+                // if (log.isDebugEnabled())
+                // log.debug("Materialized " + objlabel_to + "." + propertyname + " = " + v);
             }
         }
-        for (PKey propertyname : newList(obj_to.getPropertyNames())) { // TODO: need newList (to avoid ConcurrentModificationException)?
+        for (PKey propertyname : newList(obj_to.getPropertyNames())) { // TODO: need newList (to avoid
+                                                                       // ConcurrentModificationException)?
             Value v_to = obj_to.getProperty(propertyname);
             Value v_from = obj_from.getProperty(propertyname);
             if (modified || !v_to.isUnknown() || !v_from.isUnknown()) {
@@ -1024,7 +1104,8 @@ public class State implements IState<State, Context, CallEdge> {
                 if (v_to.isUnknown())
                     v_to = UnknownValueResolver.getProperty(objlabel_to, propertyname, this, v_from.isPolymorphic());
                 if (v_from.isUnknown())
-                    v_from = UnknownValueResolver.getProperty(objlabel_from, propertyname, state_from, v_to.isPolymorphic());
+                    v_from = UnknownValueResolver.getProperty(objlabel_from, propertyname, state_from,
+                            v_to.isPolymorphic());
                 v_to = UnknownValueResolver.join(v_to, this, v_from, state_from, widen);
                 if (modified)
                     v_to = v_to.joinModified();
@@ -1041,10 +1122,13 @@ public class State implements IState<State, Context, CallEdge> {
         if (modified || !internal_prototype_to.isUnknown() || !internal_prototype_from.isUnknown()) {
             Value internal_prototype_to_original = internal_prototype_to;
             if (internal_prototype_to.isUnknown())
-                internal_prototype_to = UnknownValueResolver.getInternalPrototype(objlabel_to, this, internal_prototype_from.isPolymorphic());
+                internal_prototype_to = UnknownValueResolver.getInternalPrototype(objlabel_to, this,
+                        internal_prototype_from.isPolymorphic());
             if (internal_prototype_from.isUnknown())
-                internal_prototype_from = UnknownValueResolver.getInternalPrototype(objlabel_from, state_from, internal_prototype_to.isPolymorphic());
-            internal_prototype_to = UnknownValueResolver.join(internal_prototype_to, this, internal_prototype_from, state_from, widen);
+                internal_prototype_from = UnknownValueResolver.getInternalPrototype(objlabel_from, state_from,
+                        internal_prototype_to.isPolymorphic());
+            internal_prototype_to = UnknownValueResolver.join(internal_prototype_to, this, internal_prototype_from,
+                    state_from, widen);
             if (modified)
                 internal_prototype_to = internal_prototype_to.joinModified();
             if (internal_prototype_to != internal_prototype_to_original) {
@@ -1059,10 +1143,13 @@ public class State implements IState<State, Context, CallEdge> {
         if (modified || !internal_value_to.isUnknown() || !internal_value_from.isUnknown()) {
             Value internal_value_to_original = internal_value_to;
             if (internal_value_to.isUnknown())
-                internal_value_to = UnknownValueResolver.getInternalValue(objlabel_to, this, internal_value_from.isPolymorphic());
+                internal_value_to = UnknownValueResolver.getInternalValue(objlabel_to, this,
+                        internal_value_from.isPolymorphic());
             if (internal_value_from.isUnknown())
-                internal_value_from = UnknownValueResolver.getInternalValue(objlabel_from, state_from, internal_value_to.isPolymorphic());
-            internal_value_to = UnknownValueResolver.join(internal_value_to, this, internal_value_from, state_from, widen);
+                internal_value_from = UnknownValueResolver.getInternalValue(objlabel_from, state_from,
+                        internal_value_to.isPolymorphic());
+            internal_value_to = UnknownValueResolver.join(internal_value_to, this, internal_value_from, state_from,
+                    widen);
             if (modified)
                 internal_value_to = internal_value_to.joinModified();
             if (internal_value_to != internal_value_to_original) {
@@ -1074,8 +1161,12 @@ public class State implements IState<State, Context, CallEdge> {
         }
         if (modified || !obj_to.isScopeChainUnknown() || !obj_from.isScopeChainUnknown()) {
             boolean scopechain_to_unknown = obj_to.isScopeChainUnknown();
-            ScopeChain scope_chain_to = obj_to.isScopeChainUnknown() ? UnknownValueResolver.getScopeChain(objlabel_to, this) : obj_to.getScopeChain();
-            ScopeChain scope_chain_from = obj_from.isScopeChainUnknown() ? UnknownValueResolver.getScopeChain(objlabel_from, state_from) : obj_from.getScopeChain();
+            ScopeChain scope_chain_to = obj_to.isScopeChainUnknown()
+                    ? UnknownValueResolver.getScopeChain(objlabel_to, this)
+                    : obj_to.getScopeChain();
+            ScopeChain scope_chain_from = obj_from.isScopeChainUnknown()
+                    ? UnknownValueResolver.getScopeChain(objlabel_from, state_from)
+                    : obj_from.getScopeChain();
             ScopeChain new_scope_chain = ScopeChain.add(scope_chain_to, scope_chain_from);
             if ((new_scope_chain != null && !new_scope_chain.equals(scope_chain_to)) || scopechain_to_unknown) {
                 if (!obj_to.isWritable())
@@ -1088,7 +1179,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * Returns a description of the names of the [enumerable] properties of the given objects [and their prototypes].
+     * Returns a description of the names of the [enumerable] properties of the
+     * given objects [and their prototypes].
      */
     public ObjProperties getProperties(Collection<ObjectLabel> objlabels, ObjProperties.PropertyQuery flags) {
         return ObjProperties.getProperties(objlabels, this, flags);
@@ -1097,7 +1189,8 @@ public class State implements IState<State, Context, CallEdge> {
     /**
      * Returns the set of objects in the prototype chain that contain the property.
      */
-    public Set<ObjectLabel> getPrototypeWithProperty(ObjectLabel objlabel, PKeys propertyName) { // TODO: review -- see PropVarOperations.readPropertyRaw
+    public Set<ObjectLabel> getPrototypeWithProperty(ObjectLabel objlabel, PKeys propertyName) { // TODO: review -- see
+                                                                                                 // PropVarOperations.readPropertyRaw
         if (Options.get().isDebugOrTestEnabled() && propertyName.isMaybeOtherThanStr()) {
             throw new AnalysisException("Uncoerced property name: " + propertyName);
         }
@@ -1120,11 +1213,14 @@ public class State implements IState<State, Context, CallEdge> {
                         }
                         // relevant properties have been materialized now
                         values.addAll(getObject(l, false).getProperties().keySet().stream()
-                                .filter(k -> k instanceof StringPKey && propertyName.isMaybeStr(((StringPKey)k).getStr())) // FIXME: doesn't support Symbols?
+                                .filter(k -> k instanceof StringPKey
+                                        && propertyName.isMaybeStr(((StringPKey) k).getStr())) // FIXME: doesn't support
+                                                                                               // Symbols?
                                 .map(n -> UnknownValueResolver.getProperty(l, n, this, true))
                                 .collect(Collectors.toList()));
                     } else { // FIXME: doesn't support Symbols?
-                        values.add(UnknownValueResolver.getProperty(l, StringPKey.make(propertyName.getStr()), this, true));
+                        values.add(UnknownValueResolver.getProperty(l, StringPKey.make(propertyName.getStr()), this,
+                                true));
                     }
 
                     boolean definitelyAbsent = values.stream().allMatch(Value::isNotPresent);
@@ -1147,7 +1243,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     // TODO: replace with getPrototypeWithProperty, but check messages!
-    public Set<ObjectLabel> getPrototypesUsedForUnknown(ObjectLabel objlabel) { // TODO: review (used only in AnalysisMonitor)
+    public Set<ObjectLabel> getPrototypesUsedForUnknown(ObjectLabel objlabel) { // TODO: review (used only in
+                                                                                // AnalysisMonitor)
         State state = c.getState();
         Set<ObjectLabel> ol = Collections.singleton(objlabel);
         Set<ObjectLabel> visited = newSet();
@@ -1171,7 +1268,10 @@ public class State implements IState<State, Context, CallEdge> {
 
     /**
      * Materializes a singleton object from the given summary object.
-     * @param definitely_only_one set to true if the object has been created only once since function entry
+     * 
+     * @param definitely_only_one
+     *                                set to true if the object has been created only
+     *                                once since function entry
      * @return object label of the materialized singleton
      */
     public ObjectLabel materializeObj(ObjectLabel summary, boolean definitely_only_one) {
@@ -1190,6 +1290,7 @@ public class State implements IState<State, Context, CallEdge> {
             log.debug("materializeObj(" + summary + ")");
         return singleton;
     }
+
     /**
      * Adds an object label, representing a new empty object, to the store.
      * Takes recency abstraction into account.
@@ -1200,12 +1301,33 @@ public class State implements IState<State, Context, CallEdge> {
             throw new AnalysisException("Attempt to summarize object from basis store");
         makeWritableStore();
         c.getMonitoring().visitNewObject(c.getNode(), objlabel, this);
-        if (!Options.get().isRecencyDisabled() && (objlabel.getKind() != Kind.SYMBOL || objlabel.isHostObject())) { // non-host symbol objects always modeled as summary objects to avoid problem when summarizing objects with symbol property keys and polymorphic values
+        if (!Options.get().isRecencyDisabled() && (objlabel.getKind() != Kind.SYMBOL || objlabel.isHostObject())) { // non-host
+                                                                                                                    // symbol
+                                                                                                                    // objects
+                                                                                                                    // always
+                                                                                                                    // modeled
+                                                                                                                    // as
+                                                                                                                    // summary
+                                                                                                                    // objects
+                                                                                                                    // to
+                                                                                                                    // avoid
+                                                                                                                    // problem
+                                                                                                                    // when
+                                                                                                                    // summarizing
+                                                                                                                    // objects
+                                                                                                                    // with
+                                                                                                                    // symbol
+                                                                                                                    // property
+                                                                                                                    // keys
+                                                                                                                    // and
+                                                                                                                    // polymorphic
+                                                                                                                    // values
             if (!objlabel.isSingleton())
                 throw new AnalysisException("Expected singleton object label");
             summarizeObj(objlabel, objlabel.makeSummary(), Obj.makeAbsentModified());
         } else {
-            // join the empty object into oldobj (only relevant if recency abstraction is disabled)
+            // join the empty object into oldobj (only relevant if recency abstraction is
+            // disabled)
             Obj obj = getObject(objlabel, true);
             Value old_numeric = UnknownValueResolver.getDefaultNumericProperty(objlabel, this);
             Value old_other = UnknownValueResolver.getDefaultOtherProperty(objlabel, this);
@@ -1218,7 +1340,8 @@ public class State implements IState<State, Context, CallEdge> {
                     v = UnknownValueResolver.getProperty(objlabel, propertyname, this, true);
                 obj.setProperty(propertyname, v.joinAbsentModified());
             }
-            obj.setInternalPrototype(UnknownValueResolver.getInternalPrototype(objlabel, this, true).joinAbsentModified());
+            obj.setInternalPrototype(
+                    UnknownValueResolver.getInternalPrototype(objlabel, this, true).joinAbsentModified());
             obj.setInternalValue(UnknownValueResolver.getInternalValue(objlabel, this, true).joinAbsentModified());
         }
         if (log.isDebugEnabled())
@@ -1229,7 +1352,8 @@ public class State implements IState<State, Context, CallEdge> {
         Obj oldobj = getObject(singleton, false);
         if (!oldobj.isSomeNone()) {
             // join singleton object into its summary object
-            // FIXME Support c.getMonitoring().visitRenameObject(c.getNode(), singleton, summary, this); (GitHub #413)
+            // FIXME Support c.getMonitoring().visitRenameObject(c.getNode(), singleton,
+            // summary, this); (GitHub #413)
             propagateObj(summary, this, singleton, true, false);
             // update references
             Map<ScopeChain, ScopeChain> cache = new HashMap<>();
@@ -1356,7 +1480,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * Reads a variable directly from the current variable object, without considering the full scope chain.
+     * Reads a variable directly from the current variable object, without
+     * considering the full scope chain.
      * (Only to be used for testing.)
      */
     public Value readVariableDirect(String var) {
@@ -1373,18 +1498,18 @@ public class State implements IState<State, Context, CallEdge> {
     public Value readProperty(ObjectProperty p, boolean partial) {
         ObjectLabel objlabel = p.getObjectLabel();
         switch (p.getKind()) {
-            case ORDINARY:
-                return UnknownValueResolver.getProperty(objlabel, p.getPropertyName(), this, partial);
-            case DEFAULT_NUMERIC:
-                return UnknownValueResolver.getDefaultNumericProperty(objlabel, this);
-            case DEFAULT_OTHER:
-                return UnknownValueResolver.getDefaultOtherProperty(objlabel, this);
-            case INTERNAL_PROTOTYPE:
-                return UnknownValueResolver.getInternalPrototype(objlabel, this, partial);
-            case INTERNAL_VALUE:
-                return UnknownValueResolver.getInternalValue(objlabel, this, partial);
-            default:
-                throw new AnalysisException("Unexpected property reference");
+        case ORDINARY:
+            return UnknownValueResolver.getProperty(objlabel, p.getPropertyName(), this, partial);
+        case DEFAULT_NUMERIC:
+            return UnknownValueResolver.getDefaultNumericProperty(objlabel, this);
+        case DEFAULT_OTHER:
+            return UnknownValueResolver.getDefaultOtherProperty(objlabel, this);
+        case INTERNAL_PROTOTYPE:
+            return UnknownValueResolver.getInternalPrototype(objlabel, this, partial);
+        case INTERNAL_VALUE:
+            return UnknownValueResolver.getInternalValue(objlabel, this, partial);
+        default:
+            throw new AnalysisException("Unexpected property reference");
         }
     }
 
@@ -1404,8 +1529,10 @@ public class State implements IState<State, Context, CallEdge> {
             }
             newval = newval.joinModified();
             Obj obj = getObject(objlabel, true);
-            // FIXME only null or object values are actually written! (see JSObject -> OBJECT_SETPROTOTYPEOF for example) (GitHub #356)
-            // FIXME Property.__PROTO__ should be assigned `absent` when `newval.isMaybeNull` (GitHub #356)
+            // FIXME only null or object values are actually written! (see JSObject ->
+            // OBJECT_SETPROTOTYPEOF for example) (GitHub #356)
+            // FIXME Property.__PROTO__ should be assigned `absent` when
+            // `newval.isMaybeNull` (GitHub #356)
             obj.setProperty(StringPKey.__PROTO__, newval.setAttributes(true, true, false));
             obj.setInternalPrototype(newval); // TODO: redundant, the value is also available as __proto__
         }
@@ -1422,7 +1549,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * Assign the given value to the internal [[Value]] property of the given objects.
+     * Assign the given value to the internal [[Value]] property of the given
+     * objects.
      * Modified is set on all values being written.
      */
     public void writeInternalValue(Collection<ObjectLabel> objlabels, Value value) {
@@ -1440,7 +1568,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * Assigns the given value to the internal [[Value]] property of the given object.
+     * Assigns the given value to the internal [[Value]] property of the given
+     * object.
      * Modified is set on all values being written.
      */
     public void writeInternalValue(ObjectLabel objlabel, Value value) {
@@ -1486,7 +1615,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * Assigns a copy of the given scope chain to the internal scope property of the given object.
+     * Assigns a copy of the given scope chain to the internal scope property of the
+     * given object.
      */
     public void writeObjectScope(ObjectLabel objlabel, ScopeChain scope) {
         if (objlabel.getKind() == Kind.FUNCTION && !objlabel.isHostObject() && scope == null)
@@ -1547,35 +1677,37 @@ public class State implements IState<State, Context, CallEdge> {
         writable_execution_context = true;
     }
 
-//    protected void remove(State other) { // (currently unused)
-//        makeWritableStore();
-//        makeWritableExecutionContext();
-//        makeWritableRegisters();
-//        makeWritableStackedObjects();
-//        store_default = new Obj(store_default);
-//        store_default.remove(other.store_default);
-//        for (ObjectLabel objlabel : store.keySet()) {
-//            Obj obj = getObject(objlabel, true);
-//            Obj other_obj = other.getObject(objlabel, false);
-//            obj.remove(other_obj);
-//        }
-//        execution_context.remove(other.execution_context);
-//        // don't remove from summarized (lattice order of definitely_summarized is reversed, so removal isn't trivial)
-//        for (int i = 0; i < registers.size(); i++) {
-//            Value v_this = registers.get(i);
-//            if (v_this != null) {
-//                Value v_other = other.registers.get(i);
-//                if (v_other != null)
-//                    registers.set(i, v_this.remove(v_other));
-//            }
-//        }
-//        stacked_objlabels.removeAll(other.stacked_objlabels);
-//        stacked_funentries.removeAll(other.stacked_funentries);
-//        extras.remove(other.extras);
-//    }
+    // protected void remove(State other) { // (currently unused)
+    // makeWritableStore();
+    // makeWritableExecutionContext();
+    // makeWritableRegisters();
+    // makeWritableStackedObjects();
+    // store_default = new Obj(store_default);
+    // store_default.remove(other.store_default);
+    // for (ObjectLabel objlabel : store.keySet()) {
+    // Obj obj = getObject(objlabel, true);
+    // Obj other_obj = other.getObject(objlabel, false);
+    // obj.remove(other_obj);
+    // }
+    // execution_context.remove(other.execution_context);
+    // // don't remove from summarized (lattice order of definitely_summarized is
+    // reversed, so removal isn't trivial)
+    // for (int i = 0; i < registers.size(); i++) {
+    // Value v_this = registers.get(i);
+    // if (v_this != null) {
+    // Value v_other = other.registers.get(i);
+    // if (v_other != null)
+    // registers.set(i, v_this.remove(v_other));
+    // }
+    // }
+    // stacked_objlabels.removeAll(other.stacked_objlabels);
+    // stacked_funentries.removeAll(other.stacked_funentries);
+    // extras.remove(other.extras);
+    // }
 
     /**
-     * Returns a string description of the differences between this state and the given one.
+     * Returns a string description of the differences between this state and the
+     * given one.
      */
     @Override
     public String diff(State old) {
@@ -1583,7 +1715,8 @@ public class State implements IState<State, Context, CallEdge> {
         for (Map.Entry<ObjectLabel, Obj> me : sortedEntries(store, new ObjectLabel.Comparator())) {
             Obj xo = old.getObject(me.getKey(), false);
             if (!me.getValue().equals(xo)) {
-                b.append("\n      changed object ").append(me.getKey()).append(" at ").append(me.getKey().getSourceLocation()).append(": ");
+                b.append("\n      changed object ").append(me.getKey()).append(" at ")
+                        .append(me.getKey().getSourceLocation()).append(": ");
                 me.getValue().diff(xo, b);
             }
         }
@@ -1595,8 +1728,10 @@ public class State implements IState<State, Context, CallEdge> {
             b.append("\n      new this: ");
             execution_context.getThis().diff(old.execution_context.getThis(), b);
         }
-        if (!ScopeChain.isEmpty(ScopeChain.remove(execution_context.getScopeChain(), old.execution_context.getScopeChain())))
-            b.append("\n      new scope chain: ").append(ScopeChain.remove(execution_context.getScopeChain(), old.execution_context.getScopeChain()));
+        if (!ScopeChain
+                .isEmpty(ScopeChain.remove(execution_context.getScopeChain(), old.execution_context.getScopeChain())))
+            b.append("\n      new scope chain: ").append(
+                    ScopeChain.remove(execution_context.getScopeChain(), old.execution_context.getScopeChain()));
         temp = newSet(summarized.getMaybeSummarized());
         temp.removeAll(old.summarized.getMaybeSummarized());
         if (!temp.isEmpty())
@@ -1629,10 +1764,11 @@ public class State implements IState<State, Context, CallEdge> {
         b.append("\n  Summarized: ").append(summarized);
         b.append("\n  Store (excluding basis and default objects): ");
         for (Map.Entry<ObjectLabel, Obj> me : sortedEntries(store, new ObjectLabel.Comparator())) {
-            b.append("\n    ").append(me.getKey()).append(" (").append(me.getKey().getSourceLocation()).append("): ").append(me.getValue());
+            b.append("\n    ").append(me.getKey()).append(" (").append(me.getKey().getSourceLocation()).append("): ")
+                    .append(me.getValue());
         }
-//        b.append("\n  Default object: ").append(store_default);
-//        b.append("\n  Store default: ").append(store_default);
+        // b.append("\n Default object: ").append(store_default);
+        // b.append("\n Store default: ").append(store_default);
         b.append("\n  Registers: ");
         for (int i = 0; i < registers.size(); i++)
             if (registers.get(i) != null)
@@ -1664,7 +1800,8 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * As {@link #toString()} but excludes registers and non-modified objects and properties.
+     * As {@link #toString()} but excludes registers and non-modified objects and
+     * properties.
      */
     @Override
     public String toStringBrief() {
@@ -1673,7 +1810,7 @@ public class State implements IState<State, Context, CallEdge> {
         b.append("\n  Summarized: ").append(summarized);
         b.append("\n  Store (excluding non-modified): ");
         printModifiedStore(b);
-        //b.append("\n  Default object: ").append(store_default);
+        // b.append("\n Default object: ").append(store_default);
         return b.toString();
     }
 
@@ -1691,7 +1828,8 @@ public class State implements IState<State, Context, CallEdge> {
      */
     private void printModifiedStore(StringBuilder b) {
         for (Map.Entry<ObjectLabel, Obj> me : sortedEntries(store, new ObjectLabel.Comparator()))
-            b.append("\n  ").append(me.getKey()).append(" (").append(me.getKey().getSourceLocation()).append("):").append(me.getValue().printModified());
+            b.append("\n  ").append(me.getKey()).append(" (").append(me.getKey().getSourceLocation()).append("):")
+                    .append(me.getValue().printModified());
     }
 
     @Override
@@ -1715,19 +1853,24 @@ public class State implements IState<State, Context, CallEdge> {
             Obj obj = store.get(label);
             if (obj != null) {
                 for (Map.Entry<PKey, Value> ee : obj.getProperties().entrySet()) {
-                    s.append("|").append("<f").append(index++).append("> ").append(ee.getKey()).append("=").append(esc(ee.getValue().restrictToNotObject().toString()));
+                    s.append("|").append("<f").append(index++).append("> ").append(ee.getKey()).append("=")
+                            .append(esc(ee.getValue().restrictToNotObject().toString()));
                 }
                 if (!obj.getDefaultNumericProperty().isUnknown()) {
-                    s.append("|").append("<f").append(index++).append("> [[DefaultNumeric]]=").append(esc(obj.getDefaultNumericProperty().restrictToNotObject().toString()));
+                    s.append("|").append("<f").append(index++).append("> [[DefaultNumeric]]=")
+                            .append(esc(obj.getDefaultNumericProperty().restrictToNotObject().toString()));
                 }
                 if (!obj.getDefaultOtherProperty().isUnknown()) {
-                    s.append("|").append("<f").append(index++).append("> [[DefaultOther]]=").append(esc(obj.getDefaultOtherProperty().restrictToNotObject().toString()));
+                    s.append("|").append("<f").append(index++).append("> [[DefaultOther]]=")
+                            .append(esc(obj.getDefaultOtherProperty().restrictToNotObject().toString()));
                 }
                 if (!obj.getInternalPrototype().isUnknown()) {
-                    s.append("|").append("<f").append(index++).append("> [[Prototype]]=").append(esc(obj.getInternalPrototype().restrictToNotObject().toString()));
+                    s.append("|").append("<f").append(index++).append("> [[Prototype]]=")
+                            .append(esc(obj.getInternalPrototype().restrictToNotObject().toString()));
                 }
                 if (!obj.getInternalValue().isUnknown()) {
-                    s.append("|").append("<f").append(index++).append("> [[Value]]=").append(esc(obj.getInternalValue().restrictToNotObject().toString()));
+                    s.append("|").append("<f").append(index++).append("> [[Value]]=")
+                            .append(esc(obj.getInternalValue().restrictToNotObject().toString()));
                 }
                 if (!obj.isScopeChainUnknown()) {
                     s.append("|").append("<f").append(index).append("> [[Scope]]=");
@@ -1820,72 +1963,79 @@ public class State implements IState<State, Context, CallEdge> {
         return Strings.escape(s).replace("|", " \\| ");
     }
 
-// TODO: toDotDOM() ?
-//    public String toDotDOM() { // (currently unused)
-//           StringBuilder ns = new StringBuilder("\n\t/* Nodes */\n");
-//        StringBuilder es = new StringBuilder("\n\t/* Edges */\n");
-//
-//        for (Map.Entry<ObjectLabel, Obj> e : sortedEntries(store)) {
-//            ObjectLabel label = e.getKey();
-//            Obj object = e.getValue();
-//            if (!label.isHostObject()) {
-//                // Ignore non-host objects
-//                continue;
-//            }
-//            if (object.getInternalPrototype().getObjectLabels().contains(FUNCTION_PROTOTYPE)) {
-//                // Ignore functions objects
-//                continue;
-//            }
-//            if (Options.get().isDOMEnabled()) {
-//                if ((label.getHostObject().getAPI() != HostAPIs.DOCUMENT_OBJECT_MODEL
-//                        && label.getHostObject().getAPI() != HostAPIs.DSL_OBJECT_MODEL)) {
-//                    // Ignore non-DOM objects (if DOM is enabled)
-//                    continue;
-//                }
-//            }
-//
-//            // Build label (i.e. the box)
-//            // The intended format is: FOO [shape=record label="{NAME\lEntry_1\lEntry2\l}"]
-//            String name = label.toString();
-//            StringBuilder lbl = new StringBuilder();
-//            lbl.append(name);
-//            Map<String, Value> properties = new TreeMap<String, Value>(object.getProperties());
-//            Iterator<String> iter = properties.keySet().iterator();
-//            int i = 0;
-//            int limit = 10;
-//            while (i < limit && iter.hasNext()) {
-//                if (i == 0) {
-//                    lbl.append("|");
-//                } else {
-//                    lbl.append("\\l");
-//                }
-//                String property = iter.next();
-//                lbl.append(property);
-//                i++;
-//            }
-//            lbl.append("\\l");
-//            if (iter.hasNext()) {
-//                lbl.append("...\\l");
-//            }
-//            ns.append("\t").append("\"").append(name).append("\"").append(" [shape=record label=\"{").append(lbl).append("}\"]").append("\n");
-//
-//            // Build arrows
-//            for (ObjectLabel prototype : object.getInternalPrototype().getObjectLabels()) {
-//                es.append("\t").append("\"").append(name).append("\"").append(" -> ").append("\"").append(prototype).append("\"").append("\n");
-//            }
-//        }
-//
-//        // Put everything together
-//        StringBuilder sb = new StringBuilder();
-//        sb.append("digraph {\n");
-//        sb.append("\tcompound=true\n");
-//        sb.append("\trankdir=\"BT\"\n");
-//        sb.append("\tnode [fontname=\"Arial\"]\n");
-//        sb.append(ns);
-//        sb.append(es);
-//        sb.append("}");
-//        return sb.toString();
-//    }
+    // TODO: toDotDOM() ?
+    // public String toDotDOM() { // (currently unused)
+    // StringBuilder ns = new StringBuilder("\n\t/* Nodes */\n");
+    // StringBuilder es = new StringBuilder("\n\t/* Edges */\n");
+    //
+    // for (Map.Entry<ObjectLabel, Obj> e : sortedEntries(store)) {
+    // ObjectLabel label = e.getKey();
+    // Obj object = e.getValue();
+    // if (!label.isHostObject()) {
+    // // Ignore non-host objects
+    // continue;
+    // }
+    // if
+    // (object.getInternalPrototype().getObjectLabels().contains(FUNCTION_PROTOTYPE))
+    // {
+    // // Ignore functions objects
+    // continue;
+    // }
+    // if (Options.get().isDOMEnabled()) {
+    // if ((label.getHostObject().getAPI() != HostAPIs.DOCUMENT_OBJECT_MODEL
+    // && label.getHostObject().getAPI() != HostAPIs.DSL_OBJECT_MODEL)) {
+    // // Ignore non-DOM objects (if DOM is enabled)
+    // continue;
+    // }
+    // }
+    //
+    // // Build label (i.e. the box)
+    // // The intended format is: FOO [shape=record
+    // label="{NAME\lEntry_1\lEntry2\l}"]
+    // String name = label.toString();
+    // StringBuilder lbl = new StringBuilder();
+    // lbl.append(name);
+    // Map<String, Value> properties = new TreeMap<String,
+    // Value>(object.getProperties());
+    // Iterator<String> iter = properties.keySet().iterator();
+    // int i = 0;
+    // int limit = 10;
+    // while (i < limit && iter.hasNext()) {
+    // if (i == 0) {
+    // lbl.append("|");
+    // } else {
+    // lbl.append("\\l");
+    // }
+    // String property = iter.next();
+    // lbl.append(property);
+    // i++;
+    // }
+    // lbl.append("\\l");
+    // if (iter.hasNext()) {
+    // lbl.append("...\\l");
+    // }
+    // ns.append("\t").append("\"").append(name).append("\"").append(" [shape=record
+    // label=\"{").append(lbl).append("}\"]").append("\n");
+    //
+    // // Build arrows
+    // for (ObjectLabel prototype : object.getInternalPrototype().getObjectLabels())
+    // {
+    // es.append("\t").append("\"").append(name).append("\"").append(" ->
+    // ").append("\"").append(prototype).append("\"").append("\n");
+    // }
+    // }
+    //
+    // // Put everything together
+    // StringBuilder sb = new StringBuilder();
+    // sb.append("digraph {\n");
+    // sb.append("\tcompound=true\n");
+    // sb.append("\trankdir=\"BT\"\n");
+    // sb.append("\tnode [fontname=\"Arial\"]\n");
+    // sb.append(ns);
+    // sb.append(es);
+    // sb.append("}");
+    // return sb.toString();
+    // }
 
     /**
      * Reduces this state.
@@ -1898,7 +2048,8 @@ public class State implements IState<State, Context, CallEdge> {
 
     /**
      * Runs garbage collection on the contents of this state.
-     * Ignored if {@link OptionValues#isGCDisabled()} or {@link OptionValues#isRecencyDisabled()} is set.
+     * Ignored if {@link OptionValues#isGCDisabled()} or
+     * {@link OptionValues#isRecencyDisabled()} is set.
      */
     public void gc(Value extra) {
         if (Options.get().isGCDisabled() || Options.get().isRecencyDisabled())
@@ -1926,18 +2077,23 @@ public class State implements IState<State, Context, CallEdge> {
     }
 
     /**
-     * Returns true if the given object label is definitely the none object at the given function entry state.
+     * Returns true if the given object label is definitely the none object at the
+     * given function entry state.
      */
     private static boolean noneAtEntry(ObjectLabel objlabel, State entry_state) {
         return entry_state.getObject(objlabel, false).getDefaultNumericProperty().isNone();
     }
 
     /**
-     * Finds live object labels (i.e. those reachable from the execution context, registers, or stacked object labels).
+     * Finds live object labels (i.e. those reachable from the execution context,
+     * registers, or stacked object labels).
      * Note that the summarized sets may contain dead object labels.
      *
-     * @param extra       extra value that should be treated as root, ignored if null
-     * @param entry_state at function entry
+     * @param extra
+     *                        extra value that should be treated as root, ignored if
+     *                        null
+     * @param entry_state
+     *                        at function entry
      */
     private Set<ObjectLabel> findLiveObjectLabels(Value extra, State entry_state) {
         Set<ObjectLabel> live = execution_context.getObjectLabels();
@@ -1950,10 +2106,14 @@ public class State implements IState<State, Context, CallEdge> {
         extras.getAllObjectLabels(live);
         if (!Options.get().isLazyDisabled())
             for (ObjectLabel objlabel : store.keySet()) {
-                // some object represented by objlabel may originate from the caller (so it must be treated as live),
-                // unless it is a singleton object marked as definitely summarized or it is 'none' at function entry
+                // some object represented by objlabel may originate from the caller (so it must
+                // be treated as live),
+                // unless it is a singleton object marked as definitely summarized or it is
+                // 'none' at function entry
                 if (!((objlabel.isSingleton() && summarized.isDefinitelySummarized(objlabel)) ||
-                        (noneAtEntry(objlabel, entry_state) && (objlabel.isSingleton() || (summarized.isMaybeSummarized(objlabel.makeSingleton()) && noneAtEntry(objlabel.makeSingleton(), entry_state))))))
+                        (noneAtEntry(objlabel, entry_state)
+                                && (objlabel.isSingleton() || (summarized.isMaybeSummarized(objlabel.makeSingleton())
+                                        && noneAtEntry(objlabel.makeSingleton(), entry_state))))))
                     live.add(objlabel);
                 if (generalizations.containsKey(objlabel))
                     live.add(generalizations.get(objlabel));
@@ -1994,8 +2154,10 @@ public class State implements IState<State, Context, CallEdge> {
     /**
      * Models [[HasInstance]] (for instanceof).
      *
-     * @param prototype external prototype of the second argument to instanceof
-     * @param v         first argument to instanceof
+     * @param prototype
+     *                      external prototype of the second argument to instanceof
+     * @param v
+     *                      first argument to instanceof
      */
     public Value hasInstance(Collection<ObjectLabel> prototype, Value v) {
         boolean maybe_true = false;
@@ -2031,10 +2193,13 @@ public class State implements IState<State, Context, CallEdge> {
     public void writeRegister(int reg, Value value) {
         writeRegister(reg, value, true);
     }
+
     /**
      * Assigns the given value to the given register (strong update).
      * All attribute information is cleared. 'unknown' values are not permitted.
-     * @param ordinary if set, kill must-equals information for that register
+     * 
+     * @param ordinary
+     *                     if set, kill must-equals information for that register
      */
     public void writeRegister(int reg, Value value, boolean ordinary) {
         if (ordinary)
@@ -2153,14 +2318,16 @@ public class State implements IState<State, Context, CallEdge> {
      * Returns the value of 'this'.
      */
     public Set<ObjectLabel> readThisObjects() {
-        Set<ObjectLabel> objs = readThis().getObjectLabels(); // TODO: assert no primitive values (Github #479) ? -- see OrdinaryCallBindThis in the ECMAScript spec
+        Set<ObjectLabel> objs = readThis().getObjectLabels(); // TODO: assert no primitive values (Github #479) ? -- see
+                                                              // OrdinaryCallBindThis in the ECMAScript spec
         if (objs.isEmpty())
             throw new AnalysisException("empty result from readThisObjects");
         return objs;
     }
 
     /**
-     * Introduces 'unknown' values in this state according to the given function entry state.
+     * Introduces 'unknown' values in this state according to the given function
+     * entry state.
      * Also clears modified flags and summarized sets.
      */
     @Override
@@ -2209,9 +2376,11 @@ public class State implements IState<State, Context, CallEdge> {
 
     @Override
     public Context transform(CallEdge edge, Context edge_context,
-                             Map<Context, State> callee_entry_states, BasicBlock callee) {
-//        if (log.isDebugEnabled())
-//            log.debug("transform from call " + edge.getState().getBasicBlock().getSourceLocation() + " to " + callee.getSourceLocation());
+            Map<Context, State> callee_entry_states, BasicBlock callee) {
+        // if (log.isDebugEnabled())
+        // log.debug("transform from call " +
+        // edge.getState().getBasicBlock().getSourceLocation() + " to " +
+        // callee.getSourceLocation());
         return edge_context;
     }
 
