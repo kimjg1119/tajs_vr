@@ -23,6 +23,7 @@ import dk.brics.tajs.util.AnalysisException;
 import dk.brics.tajs.util.Canonicalizer;
 import dk.brics.tajs.util.Collectors;
 import dk.brics.tajs.util.DeepImmutable;
+import dk.brics.tajs.util.PersistentSet;
 import dk.brics.tajs.util.Strings;
 
 import java.util.Arrays;
@@ -33,6 +34,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static dk.brics.tajs.util.Collections.newSet;
+import static dk.brics.tajs.util.Collections.newPersistentSet;
 import static dk.brics.tajs.util.Collections.singleton;
 
 /**
@@ -51,13 +53,18 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
 
     private final static int STR_UINT = 0x00000010; // strings representing numbers that are UInt32
 
-    private final static int STR_OTHERNUM = 0x00000020; // strings representing unbounded non-UInt32 numbers, including Infinity, -Infinity, and NaN
+    private final static int STR_OTHERNUM = 0x00000020; // strings representing unbounded non-UInt32 numbers, including
+                                                        // Infinity, -Infinity, and NaN
 
-    private final static int STR_PREFIX = 0x00000040; // strings that consist of a fixed nonempty string followed by an unknown string
+    private final static int STR_PREFIX = 0x00000040; // strings that consist of a fixed nonempty string followed by an
+                                                      // unknown string
 
-    private final static int STR_IDENTIFIER = 0x00000080; // strings that are valid identifiers (excluding reserved names but including "NaN" and "Infinity")
+    private final static int STR_IDENTIFIER = 0x00000080; // strings that are valid identifiers (excluding reserved
+                                                          // names but including "NaN" and "Infinity")
 
-    private final static int STR_OTHERIDENTIFIERPARTS = 0x00000100; // strings that are valid identifier-parts (i.e. reserved names and identifiers without the start symbol), excluding STR_IDENTIFIER and STR_UINT
+    private final static int STR_OTHERIDENTIFIERPARTS = 0x00000100; // strings that are valid identifier-parts (i.e.
+                                                                    // reserved names and identifiers without the start
+                                                                    // symbol), excluding STR_IDENTIFIER and STR_UINT
 
     private final static int STR_OTHER = 0x00000200; // strings not representing numbers and not identifier-parts
 
@@ -83,13 +90,14 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
 
     private final static int ATTR_NOTDONTDELETE = 0x00200000; // not [[DontDelete]] property
 
-    private final static int MODIFIED = 0x01000000; // maybe modified property (since function entry)
+    private final static int MODIFIED = 0x01000000; // DEPRECATED: maybe modified property (since function entry)
 
     private final static int ABSENT = 0x02000000; // maybe absent property
 
     private final static int PRESENT_DATA = 0x04000000; // maybe present data property, only used if var!=null
 
-    private final static int PRESENT_ACCESSOR = 0x08000000; // maybe present getter/setter property, only used if var!=null
+    private final static int PRESENT_ACCESSOR = 0x08000000; // maybe present getter/setter property, only used if
+                                                            // var!=null
 
     private final static int UNKNOWN = 0x10000000; // unknown (lazy propagation)
 
@@ -122,8 +130,6 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     private final static int PRIMITIVE = UNDEF | NULL | BOOL | NUM | STR;
 
     private static Value theNone;
-
-    private static Value theNoneModified;
 
     private static Value theUndef;
 
@@ -167,13 +173,12 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
 
     private static Value theAbsent;
 
-    private static Value theAbsentModified;
-
     private static Value theUnknown;
 
     /*
      * Representation invariant:
-     * !((flags & (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) != 0 && str != null)
+     * !((flags & (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) != 0 && str !=
+     * null)
      * &&
      * !((flags & STR_PREFIX) != 0 && (str == null || str.length == 0))
      * &&
@@ -193,9 +198,12 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * &&
      * !(num != null && Double.isNaN(num))
      * &&
-     * !((flags & UNKNOWN) != 0 && ((flags & ~UNKNOWN) != 0 || str != null || num != null || !object_labels.isEmpty()) || !getters.isEmpty()) || !setters.isEmpty()))
+     * !((flags & UNKNOWN) != 0 && ((flags & ~UNKNOWN) != 0 || str != null || num !=
+     * null || !object_labels.isEmpty()) || !getters.isEmpty()) ||
+     * !setters.isEmpty()))
      * &&
-     * !(var != null && ((flags & PRIMITIVE) != 0 || str != null || num != null || !object_labels.isEmpty()) || !getters.isEmpty()) || !setters.isEmpty()))
+     * !(var != null && ((flags & PRIMITIVE) != 0 || str != null || num != null ||
+     * !object_labels.isEmpty()) || !getters.isEmpty()) || !setters.isEmpty()))
      * &&
      * !((flags & (PRESENT_DATA | PRESENT_ACCESSOR) != 0 && var == null)
      * &&
@@ -209,59 +217,60 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     /**
      * Value flags.
      */
-    private int flags; // see invariant above
+    private final int flags; // see invariant above
 
     /**
      * Constant number, may be +/-Infinity but not NaN.
      */
-    private Double num;
+    private final Double num;
 
     /**
      * Constant string or prefix.
      */
-    private String str;
+    private final String str;
 
     /**
      * Property reference for polymorphic value.
      */
-    private ObjectProperty var; // polymorphic if non-null
+    private final ObjectProperty var; // polymorphic if non-null
 
     /**
      * Possible values regarding object references and symbols.
      */
-    private Set<ObjectLabel> object_labels;
+    private final PersistentSet<ObjectLabel> object_labels;
 
     /**
      * Possible values regarding getters.
      */
-    private Set<ObjectLabel> getters;
+    private final PersistentSet<ObjectLabel> getters;
 
     /**
      * Possible values regarding setters.
      */
-    private Set<ObjectLabel> setters;
+    private final PersistentSet<ObjectLabel> setters;
 
     /**
      * Strings that are excluded.
      * (Only used for fuzzy strings.)
      */
-    private Set<String> excluded_strings;
+    private final PersistentSet<String> excluded_strings;
 
     /**
      * Strings that are included.
      * (Only used for fuzzy strings.)
      */
-    private Set<String> included_strings;
+    private final PersistentSet<String> included_strings;
 
     /**
-     * Information about partitioning of free variables in object_values, or null if none.
+     * Information about partitioning of free variables in object_values, or null if
+     * none.
      */
-    private FreeVariablePartitioning freeVariablePartitioning;
+    private final FreeVariablePartitioning freeVariablePartitioning;
 
     /**
      * Hash code.
      */
-    protected int hashcode;
+    protected final int hashcode;
 
     protected static boolean canonicalizing; // set during canonicalization
 
@@ -271,7 +280,6 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
 
     private static void init() {
         theNone = reallyMakeNone();
-        theNoneModified = reallyMakeNoneModified();
         theUndef = reallyMakeUndef(null);
         theNull = reallyMakeNull(null);
         theBoolTrue = reallyMakeBool(true);
@@ -293,7 +301,6 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         theNumNaN = reallyMakeNumNaN();
         theNumInf = reallyMakeNumInf();
         theAbsent = reallyMakeAbsent();
-        theAbsentModified = reallyMakeAbsentModified();
         theUnknown = reallyMakeUnknown();
     }
 
@@ -312,20 +319,115 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Constructs a shallow clone of the given value object.
+     * Constructs a new value object.
      */
-    protected Value(Value v) {
-        flags = v.flags;
-        num = v.num;
-        str = v.str;
-        object_labels = v.object_labels;
-        getters = v.getters;
-        setters = v.setters;
-        excluded_strings = v.excluded_strings;
-        included_strings = v.included_strings;
-        freeVariablePartitioning = v.freeVariablePartitioning;
-        var = v.var;
-        hashcode = v.hashcode;
+    protected Value(int flags, Double num, String str, PersistentSet<ObjectLabel> object_labels,
+            PersistentSet<ObjectLabel> getters, PersistentSet<ObjectLabel> setters,
+            PersistentSet<String> excluded_strings, PersistentSet<String> included_strings,
+            FreeVariablePartitioning freeVariablePartitioning, ObjectProperty var) {
+        this.flags = flags;
+        this.num = num;
+        this.str = str;
+        this.object_labels = object_labels;
+        this.getters = getters;
+        this.setters = setters;
+        this.excluded_strings = excluded_strings;
+        this.included_strings = included_strings;
+        this.freeVariablePartitioning = freeVariablePartitioning;
+        this.var = var;
+        hashcode = computeHashCode();
+    }
+
+    public Value withFlags(int newFlags) {
+        if (newFlags == flags)
+            return this;
+        Value r = new Value(newFlags, num, str, object_labels, getters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value addFlags(int newFlags) {
+        return withFlags(flags | newFlags);
+    }
+
+    public Value removeFlags(int newFlags) {
+        return withFlags(flags & ~newFlags);
+    }
+
+    public Value andFlags(int newFlags) {
+        return withFlags(flags & newFlags);
+    }
+
+    public Value withNum(Double newNum) {
+        if (Objects.equals(newNum, num))
+            return this;
+        Value r = new Value(flags, newNum, str, object_labels, getters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withStr(String newStr) {
+        if (Objects.equals(newStr, str))
+            return this;
+        Value r = new Value(flags, num, newStr, object_labels, getters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withObjectLabels(PersistentSet<ObjectLabel> newObjectLabels) {
+        if (Objects.equals(newObjectLabels, object_labels))
+            return this;
+        Value r = new Value(flags, num, str, newObjectLabels, getters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withGetters(PersistentSet<ObjectLabel> newGetters) {
+        if (Objects.equals(newGetters, getters))
+            return this;
+        Value r = new Value(flags, num, str, object_labels, newGetters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withSetters(PersistentSet<ObjectLabel> newSetters) {
+        if (Objects.equals(newSetters, setters))
+            return this;
+        Value r = new Value(flags, num, str, object_labels, getters, newSetters, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withExcludedStrings(PersistentSet<String> newExcludedStrings) {
+        if (Objects.equals(newExcludedStrings, excluded_strings))
+            return this;
+        Value r = new Value(flags, num, str, object_labels, getters, setters, newExcludedStrings, included_strings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withIncludedStrings(PersistentSet<String> newIncludedStrings) {
+        if (Objects.equals(newIncludedStrings, included_strings))
+            return this;
+        Value r = new Value(flags, num, str, object_labels, getters, setters, excluded_strings, newIncludedStrings,
+                freeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withFreeVariablePartitioning(FreeVariablePartitioning newFreeVariablePartitioning) {
+        if (Objects.equals(newFreeVariablePartitioning, freeVariablePartitioning))
+            return this;
+        Value r = new Value(flags, num, str, object_labels, getters, setters, excluded_strings, included_strings,
+                newFreeVariablePartitioning, var);
+        return canonicalize(r);
+    }
+
+    public Value withVar(ObjectProperty newVar) {
+        if (Objects.equals(newVar, var))
+            return this;
+        Value r = new Value(flags, num, str, object_labels, getters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, newVar);
+        return canonicalize(r);
     }
 
     /**
@@ -375,24 +477,35 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
             if (msg != null)
                 throw new AnalysisException("Invalid value (0x" + Integer.toHexString(v.flags) + ","
                         + Strings.escape(v.str) + "," + v.num + "," + v.object_labels
-                        + "," + v.getters + "," + v.setters + "," + (v.excluded_strings != null ? Strings.escape(v.excluded_strings) : null)
-                        + "," + (v.included_strings != null ? Strings.escape(v.included_strings) : null) + "), " + msg);
+                        + "," + v.getters + "," + v.setters + ","
+                        + (v.excluded_strings != null ? Strings.escape(v.excluded_strings.toMutableSet()) : null)
+                        + "," + (v.included_strings != null ? Strings.escape(v.included_strings.toMutableSet()) : null)
+                        + "), " + msg);
             if (Options.get().isPolymorphicDisabled() && v.isPolymorphic())
                 throw new AnalysisException("Unexpected polymorphic value");
         }
         canonicalizing = true;
+
+        PersistentSet<ObjectLabel> new_object_labels = v.object_labels;
+        PersistentSet<ObjectLabel> new_getters = v.getters;
+        PersistentSet<ObjectLabel> new_setters = v.setters;
+        PersistentSet<String> new_excluded_strings = v.excluded_strings;
+        PersistentSet<String> new_included_strings = v.included_strings;
+
         if (v.object_labels != null)
-            v.object_labels = Canonicalizer.get().canonicalizeSet(v.object_labels);
+            new_object_labels = Canonicalizer.get().canonicalizeSet(v.object_labels);
         if (v.getters != null)
-            v.getters = Canonicalizer.get().canonicalizeSet(v.getters);
+            new_getters = Canonicalizer.get().canonicalizeSet(v.getters);
         if (v.setters != null)
-            v.setters = Canonicalizer.get().canonicalizeSet(v.setters);
+            new_setters = Canonicalizer.get().canonicalizeSet(v.setters);
         if (v.excluded_strings != null)
-            v.excluded_strings = Canonicalizer.get().canonicalizeStringSet(v.excluded_strings);
+            new_excluded_strings = Canonicalizer.get().canonicalizeStringSet(v.excluded_strings);
         if (v.included_strings != null)
-            v.included_strings = Canonicalizer.get().canonicalizeStringSet(v.included_strings);
-        v.hashcode = v.computeHashCode();
-        Value cv = Canonicalizer.get().canonicalize(v);
+            new_included_strings = Canonicalizer.get().canonicalizeStringSet(v.included_strings);
+
+        Value r = new Value(v.flags, v.num, v.str, new_object_labels, new_getters, new_setters, new_excluded_strings,
+                new_included_strings, v.freeVariablePartitioning, v.var);
+        Value cv = Canonicalizer.get().canonicalize(r);
         canonicalizing = false;
         return cv;
     }
@@ -429,17 +542,6 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Constructs a new value as a copy of this one but with the given FreeVariablePartitioning.
-     */
-    public Value setFreeVariablePartitioning(FreeVariablePartitioning freeVariablePartitioning) {
-        if (Objects.equals(freeVariablePartitioning, this.freeVariablePartitioning))
-            return this;
-        Value r = new Value(this);
-        r.freeVariablePartitioning = freeVariablePartitioning;
-        return canonicalize(r);
-    }
-
-    /**
      * Checks whether this value is polymorphic.
      */
     public boolean isPolymorphic() {
@@ -462,28 +564,29 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Constructs a fresh polymorphic value from the attributes (including absence and presence) of this value.
+     * Constructs a fresh polymorphic value from the attributes (including absence
+     * and presence) of this value.
      */
     public Value makePolymorphic(ObjectProperty prop) {
-        Value r = new Value();
-        r.var = prop;
-        r.flags |= flags & (ATTR | ABSENT | PRESENT_DATA | PRESENT_ACCESSOR | EXTENDEDSCOPE);
+        int new_flags = flags & (ATTR | ABSENT | PRESENT_DATA | PRESENT_ACCESSOR | EXTENDEDSCOPE);
         if (isMaybePresentData())
-            r.flags |= PRESENT_DATA;
+            new_flags |= PRESENT_DATA;
         if (isMaybePresentAccessor())
-            r.flags |= PRESENT_ACCESSOR;
+            new_flags |= PRESENT_ACCESSOR;
+        Value r = new Value().withFlags(new_flags).withVar(prop);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a fresh non-polymorphic value using the attributes (excluding presence) of the given value.
+     * Constructs a fresh non-polymorphic value using the attributes (excluding
+     * presence) of the given value.
      */
     public Value makeNonPolymorphic() {
         if (var == null)
             return this;
-        Value r = new Value(this);
-        r.var = null;
-        r.flags &= ~(PRESENT_DATA | PRESENT_ACCESSOR);
+        int new_flag = flags & ~(PRESENT_DATA | PRESENT_ACCESSOR);
+        Value r = new Value(new_flag, num, str, object_labels, getters, setters, excluded_strings, included_strings,
+                freeVariablePartitioning, null);
         return canonicalize(r);
     }
 
@@ -491,7 +594,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Asserts that the value is not 'unknown'.
      *
      * @throws AnalysisException
-     *                               if the value is 'unknown'.
+     *                           if the value is 'unknown'.
      */
     private void checkNotUnknown() {
         if (isUnknown())
@@ -502,7 +605,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Asserts that the value is not polymorphic nor 'unknown'.
      *
      * @throws AnalysisException
-     *                               if the value is polymorphic or 'unknown'.
+     *                           if the value is polymorphic or 'unknown'.
      */
     public void checkNotPolymorphicOrUnknown() {
         if (isPolymorphic())
@@ -515,7 +618,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Asserts that the value is not a getter/setter.
      *
      * @throws AnalysisException
-     *                               if the value contains getters or setters.
+     *                           if the value contains getters or setters.
      */
     private void checkNoGettersSetters() {
         if (getters != null || setters != null)
@@ -533,60 +636,19 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         return theNone;
     }
 
-    private static Value reallyMakeNoneModified() {
-        return canonicalize(new Value().joinModified());
-    }
-
-    /**
-     * Constructs the empty abstract value that is marked as modified.
-     */
-    public static Value makeNoneModified() {
-        return theNoneModified;
-    }
-
     /**
      * Returns true if this abstract value represents no concrete values.
-     * If a property value is "none", the abstract object represents zero concrete objects.
+     * If a property value is "none", the abstract object represents zero concrete
+     * objects.
      * The modified flag, attributes, etc. are ignored.
      * "Unknown" is treated as non-"none".
      */
     public boolean isNone() {
         if (var == null)
-            return (flags & (PRIMITIVE | ABSENT | UNKNOWN)) == 0 && num == null && str == null && object_labels == null && getters == null && setters == null;
+            return (flags & (PRIMITIVE | ABSENT | UNKNOWN)) == 0 && num == null && str == null && object_labels == null
+                    && getters == null && setters == null;
         else
             return (flags & (ABSENT | PRESENT_DATA | PRESENT_ACCESSOR)) == 0;
-    }
-
-    /**
-     * Checks whether this value is marked as maybe modified.
-     */
-    public boolean isMaybeModified() {
-        if (Options.get().isModifiedDisabled())
-            return !isUnknown(); // if we don't use the modified flag, use the fact that unknown implies non-modified
-        return (flags & MODIFIED) != 0;
-    }
-
-    /**
-     * Constructs a value as a copy of this value but marked as maybe modified.
-     */
-    public Value joinModified() {
-        checkNotUnknown();
-        if (isMaybeModified())
-            return this;
-        Value r = new Value(this);
-        r.flags |= MODIFIED;
-        return canonicalize(r);
-    }
-
-    /**
-     * Constructs a value as a copy of this value but marked as definitely not modified.
-     */
-    public Value restrictToNotModified() {
-        if (!isMaybeModified())
-            return this;
-        Value r = new Value(this);
-        r.flags &= ~MODIFIED;
-        return canonicalize(r);
     }
 
     /**
@@ -594,13 +656,6 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public static Value makeAbsent() {
         return theAbsent;
-    }
-
-    /**
-     * Constructs the absent modified value.
-     */
-    public static Value makeAbsentModified() {
-        return theAbsentModified;
     }
 
     /**
@@ -613,30 +668,32 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     /**
      * Constructs a value as a copy of this value but definitely not absent.
      */
+
     public Value restrictToNotAbsent() {
         checkNotUnknown();
         if (isNotAbsent())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ABSENT;
-        if (r.var != null && (r.flags & (PRESENT_DATA | PRESENT_ACCESSOR)) == 0)
-            r.var = null;
+
+        int new_flags = flags & ~ABSENT;
+        Value r = this;
+        if (var != null && (new_flags & (PRESENT_DATA | PRESENT_ACCESSOR)) == 0) {
+            r = r.withVar(null);
+        }
+        r = r.withFlags(new_flags);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but only with getter/setter values.
+     * Constructs a value as a copy of this value but only with getter/setter
+     * values.
      */
     public Value restrictToGetterSetter() {
         checkNotPolymorphicOrUnknown();
         if (!isMaybePrimitive() && !isMaybeObjectOrSymbol())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~PRIMITIVE;
-        r.num = null;
-        r.str = null;
-        r.object_labels = null;
-        r.excluded_strings = r.included_strings = null;
+        int new_flags = flags & ~PRIMITIVE;
+        Value r = new Value(new_flags, null, null, null, getters, setters, null, null,
+                freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
@@ -647,8 +704,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (getters == null)
             return theNone;
-        Value r = new Value();
-        r.getters = getters;
+        Value r = this.withGetters(getters);
         return canonicalize(r);
     }
 
@@ -659,20 +715,19 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (setters == null)
             return theNone;
-        Value r = new Value();
-        r.setters = setters;
+        Value r = this.withSetters(setters);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but definitely not a getter or setter.
+     * Constructs a value as a copy of this value but definitely not a getter or
+     * setter.
      */
     public Value restrictToNotGetterSetter() {
         checkNotUnknown();
         if (getters == null && setters == null)
             return this;
-        Value r = new Value(this);
-        r.getters = r.setters = null;
+        Value r = this.withGetters(null).withSetters(null);
         return canonicalize(r);
     }
 
@@ -683,8 +738,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (getters == null)
             return this;
-        Value r = new Value(this);
-        r.getters = null;
+        Value r = this.withGetters(null);
         return canonicalize(r);
     }
 
@@ -695,8 +749,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (setters == null)
             return this;
-        Value r = new Value(this);
-        r.setters = null;
+        Value r = this.withSetters(null);
         return canonicalize(r);
     }
 
@@ -729,76 +782,55 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isMaybeAbsent())
             return this;
-        Value r = new Value(this);
-        r.flags |= ABSENT;
-        return canonicalize(r);
-    }
-
-    /**
-     * Constructs a value as a copy of this value but marked as maybe absent and maybe modified.
-     */
-    public Value joinAbsentModified() {
-        checkNotUnknown();
-        if (isMaybeAbsent() && isMaybeModified())
-            return this;
-        Value r = new Value(this);
-        r.flags |= ABSENT | MODIFIED;
+        Value r = this.addFlags(ABSENT);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAbsent() {
-        Value r = new Value();
-        r.flags |= ABSENT;
-        return canonicalize(r);
-    }
-
-    private static Value reallyMakeAbsentModified() {
-        Value r = new Value();
-        r.flags |= ABSENT | MODIFIED;
+        Value r = new Value().withFlags(ABSENT);
         return canonicalize(r);
     }
 
     private static Value reallyMakeUnknown() {
-        Value r = new Value();
-        r.flags |= UNKNOWN;
+        Value r = new Value().withFlags(UNKNOWN);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of the given value but with all attributes definitely not set.
+     * Constructs a value as a copy of the given value but with all attributes
+     * definitely not set.
      */
     public Value removeAttributes() {
         checkNotUnknown();
-        Value r = new Value(this);
-        r.flags &= ~ATTR;
-        r.flags |= ATTR_NOTDONTDELETE | ATTR_NOTDONTENUM | ATTR_NOTREADONLY;
+        Value r = this.removeFlags(ATTR)
+                .addFlags(ATTR_NOTDONTDELETE | ATTR_NOTDONTENUM | ATTR_NOTREADONLY);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with attributes set as in the given value.
+     * Constructs a value as a copy of this value but with attributes set as in the
+     * given value.
      */
     public Value setAttributes(Value from) {
         checkNotUnknown();
         from.checkNotUnknown();
-        Value r = new Value(this);
-        r.flags &= ~ATTR;
-        r.flags |= from.flags & ATTR;
+        Value r = this.removeFlags(ATTR).addFlags(from.flags & ATTR);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with no information that only makes sense for object property values.
+     * Constructs a value as a copy of this value but with no information that only
+     * makes sense for object property values.
      */
     public Value setBottomPropertyData() {
         checkNotUnknown();
-        Value r = new Value(this);
-        r.flags &= ~PROPERTYDATA;
+        Value r = this.removeFlags(PROPERTYDATA);
         return canonicalize(r);
     }
 
     /**
-     * Returns true is this value belongs to a property which definitely has DontEnum set.
+     * Returns true is this value belongs to a property which definitely has
+     * DontEnum set.
      */
     public boolean isDontEnum() {
         checkNotUnknown();
@@ -806,7 +838,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which maybe has DontEnum set.
+     * Returns true is this value belongs to a property which maybe has DontEnum
+     * set.
      */
     public boolean isMaybeDontEnum() {
         checkNotUnknown();
@@ -814,7 +847,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which definitely does not have DontEnum set.
+     * Returns true is this value belongs to a property which definitely does not
+     * have DontEnum set.
      */
     public boolean isNotDontEnum() {
         checkNotUnknown();
@@ -822,7 +856,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which maybe does not have DontEnum set.
+     * Returns true is this value belongs to a property which maybe does not have
+     * DontEnum set.
      */
     public boolean isMaybeNotDontEnum() {
         checkNotUnknown();
@@ -844,22 +879,19 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isDontEnum())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ATTR_DONTENUM_ANY;
-        r.flags |= ATTR_DONTENUM;
+        Value r = this.removeFlags(ATTR_DONTENUM_ANY).addFlags(ATTR_DONTENUM);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with DontEnum definitely not set.
+     * Constructs a value as a copy of this value but with DontEnum definitely not
+     * set.
      */
     public Value setNotDontEnum() {
         checkNotUnknown();
         if (isNotDontEnum())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ATTR_DONTENUM_ANY;
-        r.flags |= ATTR_NOTDONTENUM;
+        Value r = this.removeFlags(ATTR_DONTENUM_ANY).addFlags(ATTR_NOTDONTENUM);
         return canonicalize(r);
     }
 
@@ -870,13 +902,13 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isMaybeNotDontEnum())
             return this;
-        Value r = new Value(this);
-        r.flags |= ATTR_NOTDONTENUM;
+        Value r = this.addFlags(ATTR_NOTDONTENUM);
         return canonicalize(r);
     }
 
     /**
-     * Returns true is this value belongs to a property which definitely has DontDelete set.
+     * Returns true is this value belongs to a property which definitely has
+     * DontDelete set.
      */
     public boolean isDontDelete() {
         checkNotUnknown();
@@ -884,7 +916,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which maybe has DontDelete set.
+     * Returns true is this value belongs to a property which maybe has DontDelete
+     * set.
      */
     public boolean isMaybeDontDelete() {
         checkNotUnknown();
@@ -892,7 +925,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which definitely does not have DontDelete set.
+     * Returns true is this value belongs to a property which definitely does not
+     * have DontDelete set.
      */
     public boolean isNotDontDelete() {
         checkNotUnknown();
@@ -900,7 +934,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which maybe does not have DontDelete set.
+     * Returns true is this value belongs to a property which maybe does not have
+     * DontDelete set.
      */
     public boolean isMaybeNotDontDelete() {
         checkNotUnknown();
@@ -916,28 +951,28 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Constructs a value as a copy of this value but with DontDelete definitely set.
+     * Constructs a value as a copy of this value but with DontDelete definitely
+     * set.
      */
     public Value setDontDelete() {
         checkNotUnknown();
         if (isDontDelete())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ATTR_DONTDELETE_ANY;
-        r.flags |= ATTR_DONTDELETE;
+
+        Value r = this.removeFlags(ATTR_DONTDELETE_ANY).addFlags(ATTR_DONTDELETE);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with DontDelete definitely not set.
+     * Constructs a value as a copy of this value but with DontDelete definitely not
+     * set.
      */
     public Value setNotDontDelete() {
         checkNotUnknown();
         if (isNotDontDelete())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ATTR_DONTDELETE_ANY;
-        r.flags |= ATTR_NOTDONTDELETE;
+
+        Value r = this.removeFlags(ATTR_DONTDELETE_ANY).addFlags(ATTR_NOTDONTDELETE);
         return canonicalize(r);
     }
 
@@ -948,13 +983,13 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isMaybeNotDontDelete())
             return this;
-        Value r = new Value(this);
-        r.flags |= ATTR_NOTDONTDELETE;
+        Value r = this.addFlags(ATTR_NOTDONTDELETE);
         return canonicalize(r);
     }
 
     /**
-     * Returns true is this value belongs to a property which definitely has ReadOnly set.
+     * Returns true is this value belongs to a property which definitely has
+     * ReadOnly set.
      */
     public boolean isReadOnly() {
         checkNotUnknown();
@@ -962,7 +997,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which maybe has ReadOnly set.
+     * Returns true is this value belongs to a property which maybe has ReadOnly
+     * set.
      */
     public boolean isMaybeReadOnly() {
         checkNotUnknown();
@@ -970,7 +1006,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which definitely does not have ReadOnly set.
+     * Returns true is this value belongs to a property which definitely does not
+     * have ReadOnly set.
      */
     public boolean isNotReadOnly() {
         checkNotUnknown();
@@ -978,7 +1015,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true is this value belongs to a property which maybe does not have ReadOnly set.
+     * Returns true is this value belongs to a property which maybe does not have
+     * ReadOnly set.
      */
     public boolean isMaybeNotReadOnly() {
         checkNotUnknown();
@@ -1000,22 +1038,19 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isReadOnly())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ATTR_READONLY_ANY;
-        r.flags |= ATTR_READONLY;
+        Value r = this.removeFlags(ATTR_READONLY_ANY).addFlags(ATTR_READONLY);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with ReadOnly definitely not set.
+     * Constructs a value as a copy of this value but with ReadOnly definitely not
+     * set.
      */
     public Value setNotReadOnly() {
         checkNotUnknown();
         if (isNotReadOnly())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~ATTR_READONLY_ANY;
-        r.flags |= ATTR_NOTREADONLY;
+        Value r = this.removeFlags(ATTR_READONLY_ANY).addFlags(ATTR_NOTREADONLY);
         return canonicalize(r);
     }
 
@@ -1026,8 +1061,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isMaybeNotReadOnly())
             return this;
-        Value r = new Value(this);
-        r.flags |= ATTR_NOTREADONLY;
+        Value r = this.addFlags(ATTR_NOTREADONLY);
         return canonicalize(r);
     }
 
@@ -1036,20 +1070,22 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public Value setAttributes(boolean dontenum, boolean dontdelete, boolean readonly) {
         checkNotUnknown();
-        Value r = new Value(this);
-        r.flags &= ~ATTR;
+
+        int new_flags = flags & ~ATTR;
         if (dontdelete)
-            r.flags |= ATTR_DONTDELETE;
+            new_flags |= ATTR_DONTDELETE;
         else
-            r.flags |= ATTR_NOTDONTDELETE;
+            new_flags |= ATTR_NOTDONTDELETE;
         if (readonly)
-            r.flags |= ATTR_READONLY;
+            new_flags |= ATTR_READONLY;
         else
-            r.flags |= ATTR_NOTREADONLY;
+            new_flags |= ATTR_NOTREADONLY;
         if (dontenum)
-            r.flags |= ATTR_DONTENUM;
+            new_flags |= ATTR_DONTENUM;
         else
-            r.flags |= ATTR_NOTDONTENUM;
+            new_flags |= ATTR_NOTDONTENUM;
+
+        Value r = this.withFlags(new_flags);
         return canonicalize(r);
     }
 
@@ -1057,20 +1093,10 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Constructs a value as the join of this value and the given value.
      * 
      * @param widen
-     *                  if true, apply widening
+     *              if true, apply widening
      */
     public Value join(Value v, boolean widen) {
         return PartitionedValue.join(this, v, widen);
-    }
-
-    protected Value joinSingleValue(Value v, boolean widen) {
-        if (v == this)
-            return this;
-        Value r = new Value(this);
-        if (r.joinMutableSingleValue(v, widen)) {
-            return canonicalize(r);
-        }
-        return this;
     }
 
     /**
@@ -1098,25 +1124,16 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     /**
      * Joins the given value into this one.
      */
-    protected boolean joinMutableSingleValue(Value v, boolean widen) {
+    protected Value joinSingleValue(Value v, boolean widen) {
         if (v.isUnknown())
-            return false;
+            return this;
         if (isPolymorphic() && v.isPolymorphic() && !var.equals(v.var))
             throw new AnalysisException("Attempt to join polymorphic values of different name!");
         if (isUnknown() || (isPolymorphic() && !v.isPolymorphic())) {
-            flags = v.flags;
-            num = v.num;
-            str = v.str;
-            object_labels = v.object_labels;
-            getters = v.getters;
-            setters = v.setters;
-            excluded_strings = v.excluded_strings;
-            included_strings = v.included_strings;
-            var = v.var;
-            return true;
+            return v.withFreeVariablePartitioning(freeVariablePartitioning);
         }
-        boolean modified = false;
-        int oldflags = flags;
+
+        Value r = this;
         if (!v.isPolymorphic()) {
             // numbers
             if (num != null)
@@ -1124,90 +1141,80 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                     // both this and v are single numbers
                     if (!num.equals(v.num)) {
                         // both this and v are single numbers, and the numbers are different
-                        joinSingleNumberAsFuzzy(num);
-                        joinSingleNumberAsFuzzy(v.num);
-                        num = null;
-                        modified = true;
+                        r = joinSingleNumberAsFuzzy(r.num)
+                                .joinSingleNumberAsFuzzy(v.num)
+                                .withNum(null);
                     } // otherwise this and v are equal single numbers, so do nothing
                 } else {
                     // this is a single number, v is not a single number
                     if ((v.flags & NUM) != 0) {
                         // this is a single number, v is fuzzy
-                        joinSingleNumberAsFuzzy(num);
-                        num = null;
-                        modified = true;
+                        r = joinSingleNumberAsFuzzy(r.num)
+                                .withNum(null);
                     } // otherwise v is empty. so do nothing
                 }
             else if (v.num != null) {
                 // this is not a single number, v is a single number
                 if ((flags & NUM) != 0) {
                     // this is a fuzzy number, v is a single number
-                    joinSingleNumberAsFuzzy(v.num);
+                    r = r.joinSingleNumberAsFuzzy(v.num);
                 } else {
                     // this is empty, v is a single number
-                    num = v.num;
-                    modified = true;
+                    r = r.withNum(v.num);
                 }
             } // otherwise, neither is a single number, so do nothing
               // strings
-            modified |= joinIncludedStrings(v, widen);
-            modified |= joinExcludedStrings(v, widen);
-            modified |= joinSingleStringOrPrefixString(v);
+            r = joinIncludedStrings(v, widen);
+            r = joinExcludedStrings(v, widen);
+            r = joinSingleStringOrPrefixString(v);
+
             // objects
             if (v.object_labels != null) {
-                if (object_labels == null) {
-                    modified = true;
-                    object_labels = v.object_labels;
+                if (r.object_labels == null) {
+                    r = r.withObjectLabels(v.object_labels);
                 } else if (!object_labels.containsAll(v.object_labels)) {
-                    modified = true;
-                    object_labels = newSet(object_labels);
-                    object_labels.addAll(v.object_labels);
+                    r = r.withObjectLabels(r.object_labels.union(v.object_labels));
                 }
             }
             if (v.getters != null) {
-                if (getters == null) {
-                    modified = true;
-                    getters = v.getters;
+                if (r.getters == null) {
+                    r = r.withGetters(v.getters);
                 } else if (!getters.containsAll(v.getters)) {
-                    modified = true;
-                    getters = newSet(getters);
-                    getters.addAll(v.getters);
+                    r = r.withGetters(r.getters.union(v.getters));
                 }
             }
             if (v.setters != null) {
-                if (setters == null) {
-                    modified = true;
-                    setters = v.setters;
+                if (r.setters == null) {
+                    r = r.withSetters(v.setters);
                 } else if (!setters.containsAll(v.setters)) {
-                    modified = true;
-                    setters = newSet(setters);
-                    setters.addAll(v.setters);
+                    r = r.withSetters(r.setters.union(v.setters));
+
                 }
             }
+
+            // flags
+            int new_flags = flags;
+            new_flags |= v.flags & ~STR_PREFIX; // STR_PREFIX is handled above by joinSingleStringOrPrefixString
+            if (var == null)
+                new_flags &= ~(PRESENT_DATA | PRESENT_ACCESSOR);
+            if ((new_flags & (STR_OTHERIDENTIFIERPARTS | STR_IDENTIFIER)) != 0)
+                new_flags &= ~STR_PREFIX;
+            r = r.withFlags(new_flags);
+            r = r.joinMutableFreeVariablePartitioning(v);
+            return canonicalize(r);
         }
-        // flags
-        flags |= v.flags & ~STR_PREFIX; // STR_PREFIX is handled above by joinSingleStringOrPrefixString
-        if (var == null)
-            flags &= ~(PRESENT_DATA | PRESENT_ACCESSOR);
-        if ((flags & (STR_OTHERIDENTIFIERPARTS | STR_IDENTIFIER)) != 0)
-            flags &= ~STR_PREFIX;
-        if (flags != oldflags)
-            modified = true;
-        if (joinMutableFreeVariablePartitioning(v)) {
-            modified = true;
-        }
-        return modified;
+        return this;
     }
 
     /**
-     * Joins the freeVariablePartitioning from v into the freeVariablePartitioning of this.
+     * Joins the freeVariablePartitioning from v into the freeVariablePartitioning
+     * of this.
      */
-    private boolean joinMutableFreeVariablePartitioning(Value v) {
+    private Value joinMutableFreeVariablePartitioning(Value v) {
         if (v.freeVariablePartitioning == null)
-            return false;
-        FreeVariablePartitioning old = freeVariablePartitioning;
-        freeVariablePartitioning = v.freeVariablePartitioning.join(freeVariablePartitioning);
-        return !freeVariablePartitioning.equals(old);
+            return this;
+        Value r = this.withFreeVariablePartitioning(v.freeVariablePartitioning.join(freeVariablePartitioning));
+        return canonicalize(r);
     }
 
     /**
@@ -1216,88 +1223,89 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      *
      * @return true if this value is modified
      */
-    private boolean joinIncludedStrings(Value v, boolean widen) {
+    private Value joinIncludedStrings(Value v, boolean widen) {
         if (included_strings != null && v.included_strings != null) {
-            // both this and v have included strings, so just union
-            this.included_strings = newSet(included_strings);
-            boolean changed = included_strings.addAll(v.included_strings);
+            PersistentSet<String> new_included_strings = included_strings.union(v.included_strings);
+            boolean changed = new_included_strings.size() != included_strings.size();
+            Value r = this;
             if (widen && changed) {
                 // apply widening
-                included_strings = null;
+                r = this.withIncludedStrings(null);
             }
-            return changed;
+            r = this.withIncludedStrings(new_included_strings);
+            return canonicalize(r);
         }
         if (included_strings != null) {
             // this has included strings but v doesn't
             if (v.isNotStr()) {
                 // v has no strings
-                return false;
+                return this;
             } else {
                 // v has strings
                 if (v.str != null && (v.flags & STR_PREFIX) == 0)
                     if (included_strings.contains(v.str)) {
                         // v contains a fixed string that is already in included_strings
-                        return false;
+                        return this;
                     } else if (!widen) {
                         // v contains a fixed string that is not already in included_strings
-                        included_strings = newSet(included_strings);
-                        included_strings.add(v.str);
+                        PersistentSet<String> new_included_strings = included_strings.add(v.str);
                         if (included_strings.size() > Options.Constants.STRING_SETS_BOUND)
-                            included_strings = null;
-                        return true;
+                            new_included_strings = null;
+                        return canonicalize(this.withIncludedStrings(new_included_strings));
                     }
                 // v contains infinitely many strings, or apply widening
-                included_strings = null;
-                return true;
+                return canonicalize(this.withIncludedStrings(null));
             }
         }
         if (v.included_strings != null) {
             // this doesn't have included strings, but v does
             if (isNotStr()) {
                 // this has no strings
-                included_strings = v.included_strings;
-                return true;
+                Value r = this.withIncludedStrings(v.included_strings);
+                return canonicalize(r);
             } else {
                 // this has strings
                 if (str != null && (flags & STR_PREFIX) == 0 && v.included_strings.contains(str)) {
                     // this contains a fixed string that is already in v.included_strings
-                    included_strings = v.included_strings;
-                    return true;
+                    Value r = this.withIncludedStrings(v.included_strings);
+                    return canonicalize(r);
                 }
                 // this contains infinitely many strings
-                return false;
+                return this;
             }
         }
         // neither this nor v have strings
-        return false;
+        return this;
     }
 
     /**
      * Joins excluded_strings of given value into this value.
      * No other parts of v are used.
      *
-     * @return true if this value is modified
+     * @return the value after joined
+     * 
+     *         FIXME: This is copilot-generated
      */
-    private boolean joinExcludedStrings(Value v, boolean widen) {
+    private Value joinExcludedStrings(Value v, boolean widen) {
         if (excluded_strings == null && v.excluded_strings == null)
-            return false;
-        Set<String> new_excluded_strings = excluded_strings == null ? newSet() : newSet(excluded_strings);
+            return this;
+        PersistentSet<String> new_excluded_strings = excluded_strings == null ? newPersistentSet()
+                : excluded_strings;
         // remove the strings from this.excluded_strings that are matched by v
-        new_excluded_strings.removeIf(v::isMaybeStr);
+        new_excluded_strings = new_excluded_strings.removeIf(v::isMaybeStr);
         // add the strings from v.excluded_strings that are not matched by this
         if (v.excluded_strings != null)
-            new_excluded_strings.addAll(v.excluded_strings.stream().filter(s -> !isMaybeStr(s)).collect(Collectors.toSet()));
+            new_excluded_strings
+                    .addAll(v.excluded_strings.stream().filter(s -> !isMaybeStr(s)).collect(Collectors.toSet()));
         // fix representation if empty
         if (new_excluded_strings.isEmpty())
             new_excluded_strings = null;
-        if (widen && new_excluded_strings != null && excluded_strings != null && !new_excluded_strings.equals(excluded_strings)) {
+        if (widen && new_excluded_strings != null && excluded_strings != null
+                && !new_excluded_strings.equals(excluded_strings)) {
             // apply widening
             new_excluded_strings = null;
         }
-        boolean changed = (new_excluded_strings == null) != (excluded_strings == null) ||
-                (new_excluded_strings != null && !new_excluded_strings.equals(excluded_strings));
-        excluded_strings = new_excluded_strings;
-        return changed;
+        return v.withExcludedStrings(new_excluded_strings);
     }
 
     /**
@@ -1317,11 +1325,14 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                 && (var == v.var || (var != null && v.var != null && var.equals(v.var)))
                 && ((num == null && v.num == null) || (num != null && v.num != null && num.equals(v.num)))
                 && (str == v.str || (str != null && v.str != null && str.equals(v.str)))
-                && (object_labels == v.object_labels || (object_labels != null && v.object_labels != null && object_labels.equals(v.object_labels)))
+                && (object_labels == v.object_labels
+                        || (object_labels != null && v.object_labels != null && object_labels.equals(v.object_labels)))
                 && (getters == v.getters || (getters != null && v.getters != null && getters.equals(v.getters)))
                 && (setters == v.setters || (setters != null && v.setters != null && setters.equals(v.setters)))
-                && (excluded_strings == v.excluded_strings || (excluded_strings != null && v.excluded_strings != null && excluded_strings.equals(v.excluded_strings)))
-                && (included_strings == v.included_strings || (included_strings != null && v.included_strings != null && included_strings.equals(v.included_strings)))
+                && (excluded_strings == v.excluded_strings || (excluded_strings != null && v.excluded_strings != null
+                        && excluded_strings.equals(v.excluded_strings)))
+                && (included_strings == v.included_strings || (included_strings != null && v.included_strings != null
+                        && included_strings.equals(v.included_strings)))
                 && Objects.equals(freeVariablePartitioning, v.freeVariablePartitioning);
     }
 
@@ -1330,37 +1341,32 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * It is assumed that the old value is less than this value.
      *
      * @param old
-     *                The old value to diff against.
+     *            The old value to diff against.
      * @param b
-     *                The string builder to print the diff to.
+     *            The string builder to print the diff to.
      */
     public void diff(Value old, StringBuilder b) {
-        Value v = new Value(this);
-        v.flags &= ~old.flags; // TODO: see Value.remove above (anyway, diff is only used for debug output)
+        Value v = this;
+        v = v.removeFlags(old.flags);
         if (v.object_labels != null) {
-            v.object_labels = newSet(v.object_labels);
             if (old.object_labels != null)
-                v.object_labels.removeAll(old.object_labels);
+                v = v.withObjectLabels(v.object_labels.subtract(old.object_labels));
         }
         if (v.getters != null) {
-            v.getters = newSet(v.getters);
             if (old.getters != null)
-                v.getters.removeAll(old.getters);
+                v = v.withGetters(v.getters.subtract(old.getters));
         }
         if (v.setters != null) {
-            v.setters = newSet(v.setters);
             if (old.setters != null)
-                v.setters.removeAll(old.setters);
+                v = v.withSetters(v.setters.subtract(old.setters));
         }
-        if (old.excluded_strings != null) {
-            v.excluded_strings = newSet(old.excluded_strings);
+        if (v.excluded_strings != null) {
             if (excluded_strings != null)
-                v.excluded_strings.removeAll(excluded_strings);
+                v = v.withExcludedStrings(v.excluded_strings.subtract(old.excluded_strings));
         }
         if (v.included_strings != null) {
-            v.included_strings = newSet(v.included_strings);
-            if (old.included_strings != null)
-                v.included_strings.removeAll(old.included_strings);
+            if (included_strings != null)
+                v = v.withIncludedStrings(v.included_strings.subtract(old.included_strings));
         }
         b.append(v);
     }
@@ -1375,8 +1381,10 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
 
     /**
      * Returns the source locations of the objects and symbols in this value.
+     * Because of the performance issue, this method was implemented by the mutable
+     * set.
      */
-    public Set<SourceLocation> getObjectSourceLocations() {
+    public PersistentSet<SourceLocation> getObjectSourceLocations() {
         Set<SourceLocation> res = newSet();
         if (object_labels != null)
             for (ObjectLabel objlabel : object_labels)
@@ -1387,7 +1395,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (setters != null)
             for (ObjectLabel objlabel : setters)
                 res.add(objlabel.getSourceLocation());
-        return res;
+        return newPersistentSet(res);
     }
 
     /**
@@ -1553,9 +1561,11 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
             if (excluded_strings != null || included_strings != null) {
                 b.append(')');
                 if (excluded_strings != null)
-                    b.append("\\{").append(excluded_strings.stream().sorted().map(s -> '"' + Strings.escape(s) + '"').collect(java.util.stream.Collectors.joining(","))).append("}");
+                    b.append("\\{").append(excluded_strings.stream().sorted().map(s -> '"' + Strings.escape(s) + '"')
+                            .collect(java.util.stream.Collectors.joining(","))).append("}");
                 if (included_strings != null)
-                    b.append("{").append(included_strings.stream().sorted().map(s -> '"' + Strings.escape(s) + '"').collect(java.util.stream.Collectors.joining(","))).append("}");
+                    b.append("{").append(included_strings.stream().sorted().map(s -> '"' + Strings.escape(s) + '"')
+                            .collect(java.util.stream.Collectors.joining(","))).append("}");
                 any = true;
             }
             if (object_labels != null) {
@@ -1799,8 +1809,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Joins the meta-information from v into this value.
      */
     public Value joinMeta(Value v) {
-        Value r = new Value(this);
-        r.flags |= v.flags & META;
+        Value r = this.addFlags(v.flags & META);
         return canonicalize(r);
     }
 
@@ -1811,9 +1820,11 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     public Value joinGettersSetters(Value v) {
         if (getters != null || setters != null)
             throw new AnalysisException("Value already has getters/setters");
-        Value r = new Value(this);
-        r.getters = v.getters;
-        r.setters = v.setters;
+        PersistentSet<ObjectLabel> new_getters = v.getters.union(getters);
+        PersistentSet<ObjectLabel> new_setters = v.setters.union(setters);
+        if (new_getters == getters && new_setters == setters)
+            return this;
+        Value r = this.withGetters(new_getters).withSetters(new_setters);
         return canonicalize(r);
     }
 
@@ -1834,7 +1845,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeOtherThanUndef() {
         checkNotPolymorphicOrUnknown();
-        return (flags & (NULL | BOOL | NUM | STR)) != 0 || num != null || str != null || object_labels != null || getters != null || setters != null;
+        return (flags & (NULL | BOOL | NUM | STR)) != 0 || num != null || str != null || object_labels != null
+                || getters != null || setters != null;
     }
 
     @Override
@@ -1851,8 +1863,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isNotUndef())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~UNDEF;
+        Value r = this.removeFlags(UNDEF);
         return canonicalize(r);
     }
 
@@ -1865,8 +1876,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     private static Value reallyMakeUndef(Value v) {
-        Value r = (v == null) ? new Value() : new Value(v);
-        r.flags |= UNDEF;
+        Value r = (v == null) ? new Value() : v;
+        r = r.addFlags(UNDEF);
         return canonicalize(r);
     }
 
@@ -1894,7 +1905,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeOtherThanNull() {
         checkNotPolymorphicOrUnknown();
-        return (flags & (UNDEF | BOOL | NUM | STR)) != 0 || num != null || str != null || object_labels != null || getters != null || setters != null;
+        return (flags & (UNDEF | BOOL | NUM | STR)) != 0 || num != null || str != null || object_labels != null
+                || getters != null || setters != null;
     }
 
     @Override
@@ -1911,8 +1923,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isNotNull())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~NULL;
+        Value r = this.removeFlags(NULL);
         return canonicalize(r);
     }
 
@@ -1930,24 +1941,25 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     public boolean isNullOrUndef() {
         checkNotPolymorphicOrUnknown();
         return (flags & (NULL | UNDEF)) != 0
-                && (flags & (NUM | STR | BOOL)) == 0 && num == null && str == null && object_labels == null && getters == null && setters == null;
+                && (flags & (NUM | STR | BOOL)) == 0 && num == null && str == null && object_labels == null
+                && getters == null && setters == null;
     }
 
     /**
-     * Constructs a value as a copy of this value but definitely not null nor undefined.
+     * Constructs a value as a copy of this value but definitely not null nor
+     * undefined.
      */
     public Value restrictToNotNullNotUndef() {
         checkNotPolymorphicOrUnknown();
         if (!isMaybeNull() && !isMaybeUndef())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~(NULL | UNDEF);
+        Value r = this.removeFlags(NULL | UNDEF);
         return canonicalize(r);
     }
 
     private static Value reallyMakeNull(Value v) {
-        Value r = (v == null) ? new Value() : new Value(v);
-        r.flags |= NULL;
+        Value r = (v == null) ? new Value() : v;
+        r = r.addFlags(NULL);
         return canonicalize(r);
     }
 
@@ -1999,7 +2011,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeOtherThanBool() {
         checkNotPolymorphicOrUnknown();
-        return (flags & (UNDEF | NULL | NUM | STR)) != 0 || num != null || str != null || object_labels != null || getters != null || setters != null;
+        return (flags & (UNDEF | NULL | NUM | STR)) != 0 || num != null || str != null || object_labels != null
+                || getters != null || setters != null;
     }
 
     @Override
@@ -2007,8 +2020,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeAnyBool())
             return this;
-        Value r = new Value(this);
-        r.flags |= BOOL;
+        Value r = this.addFlags(BOOL);
         return canonicalize(r);
     }
 
@@ -2017,8 +2029,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeAnyBool() || (x ? isMaybeTrueButNotFalse() : isMaybeFalseButNotTrue()))
             return this;
-        Value r = new Value(this);
-        r.flags |= x ? BOOL_TRUE : BOOL_FALSE;
+        int new_flags = flags | (x ? BOOL_TRUE : BOOL_FALSE);
+        Value r = this.withFlags(new_flags);
         return canonicalize(r);
     }
 
@@ -2026,7 +2038,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     public Value joinBool(Value x) {
         checkNotPolymorphicOrUnknown();
         x.checkNotPolymorphicOrUnknown();
-        if (isMaybeAnyBool() || x.isMaybeAnyBool() || (isMaybeTrue() && x.isMaybeFalse()) || (isMaybeFalse() && x.isMaybeTrue()))
+        if (isMaybeAnyBool() || x.isMaybeAnyBool() || (isMaybeTrue() && x.isMaybeFalse())
+                || (isMaybeFalse() && x.isMaybeTrue()))
             return theBoolAny;
         if (isNotBool())
             return x;
@@ -2035,21 +2048,21 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     private static Value reallyMakeBool(Boolean b) {
-        Value r = new Value();
+        int new_flags = 0;
         if (b == null)
-            r.flags |= BOOL;
+            new_flags |= BOOL;
         else if (b)
-            r.flags |= BOOL_TRUE;
+            new_flags |= BOOL_TRUE;
         else
-            r.flags |= BOOL_FALSE;
+            new_flags |= BOOL_FALSE;
+        Value r = new Value().withFlags(new_flags);
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotBool() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~BOOL;
+        Value r = this.removeFlags(BOOL);
         return canonicalize(r);
     }
 
@@ -2085,7 +2098,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Constructs a value from this value where only the boolean facet is considered.
+     * Constructs a value from this value where only the boolean facet is
+     * considered.
      */
     public Value restrictToBool() {
         checkNotPolymorphicOrUnknown();
@@ -2105,14 +2119,21 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public Value restrictToTruthy() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        if ((r.flags & STR_PREFIX) == 0 && r.str != null && r.str.isEmpty())
-            r.str = null;
-        if (r.num != null && Math.abs(r.num) == 0.0)
-            r.num = null;
-        r.flags &= ~(BOOL_FALSE | NULL | UNDEF | NUM_NAN | NUM_ZERO | ABSENT);
-        if (r.isMaybeFuzzyStr())
-            return r.restrictToNotStrings(singleton(""));
+
+        int new_flags = flags;
+        Double new_num = num;
+        String new_str = str;
+
+        if ((new_flags & STR_PREFIX) == 0 && new_str != null && new_str.isEmpty())
+            new_str = null;
+        if (new_num != null && Math.abs(new_num) == 0.0)
+            new_num = null;
+        new_flags &= ~(BOOL_FALSE | NULL | UNDEF | NUM_NAN | NUM_ZERO | ABSENT);
+
+        Value r = this.withFlags(new_flags).withNum(new_num).withStr(new_str);
+
+        if (isMaybeFuzzyStr())
+            return canonicalize(r.restrictToNotStrings(singleton("")));
         else
             return canonicalize(r);
     }
@@ -2123,28 +2144,33 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public Value restrictToFalsy() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
+
+        int new_flags = flags;
+        Double new_num = num;
+        String new_str = str;
+
         if (isMaybeStr(""))
-            r.str = "";
+            new_str = "";
         else
-            r.str = null;
-        r.flags &= ~STR;
-        if (r.num != null && Math.abs(r.num) != 0.0)
-            r.num = null;
-        r.object_labels = r.getters = r.setters = null;
-        r.flags &= ~(BOOL_TRUE | STR_PREFIX | (NUM & ~(NUM_ZERO | NUM_NAN)));
-        r.excluded_strings = r.included_strings = null;
+            new_str = null;
+        new_flags &= ~STR;
+        if (new_num != null && Math.abs(new_num) != 0.0)
+            new_num = null;
+        new_flags &= ~(BOOL_TRUE | STR_PREFIX | (NUM & ~(NUM_ZERO | NUM_NAN)));
+
+        Value r = new Value(new_flags, new_num, new_str, null, null, null, null, null, freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value from this value where only the string/boolean/number facets are considered.
+     * Constructs a value from this value where only the string/boolean/number
+     * facets are considered.
      */
     public Value restrictToStrBoolNum() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.object_labels = r.getters = r.setters = null;
-        r.flags &= STR | BOOL | NUM;
+        int new_flags = flags & (STR | BOOL | NUM);
+        Value r = new Value(new_flags, num, str, null, null, null, excluded_strings, included_strings,
+                freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
@@ -2241,13 +2267,15 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeOtherThanNum() {
         checkNotPolymorphicOrUnknown();
-        return ((flags & (UNDEF | NULL | BOOL | STR)) != 0) || str != null || object_labels != null || getters != null || setters != null;
+        return ((flags & (UNDEF | NULL | BOOL | STR)) != 0) || str != null || object_labels != null || getters != null
+                || setters != null;
     }
 
     @Override
     public boolean isMaybeOtherThanNumUInt() {
         checkNotPolymorphicOrUnknown();
-        return ((flags & (UNDEF | NULL | BOOL | STR | NUM_INF | NUM_NAN | NUM_OTHER)) != 0) || str != null || object_labels != null || getters != null || setters != null;
+        return ((flags & (UNDEF | NULL | BOOL | STR | NUM_INF | NUM_NAN | NUM_OTHER)) != 0) || str != null
+                || object_labels != null || getters != null || setters != null;
     }
 
     @Override
@@ -2267,9 +2295,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeAnyNum())
             return this;
-        Value r = new Value(this);
-        r.num = null;
-        r.flags |= NUM;
+        Value r = this.addFlags(NUM).withNum(null);
         return canonicalize(r);
     }
 
@@ -2278,11 +2304,9 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeNumUIntPos() && isMaybeZero())
             return this;
-        Value r = new Value(this);
-        r.flags |= NUM_UINT;
-        r.num = null;
+        Value r = this.addFlags(NUM_UINT).withNum(null);
         if (num != null)
-            r.joinSingleNumberAsFuzzy(num);
+            r = r.joinSingleNumberAsFuzzy(num);
         return canonicalize(r);
     }
 
@@ -2291,11 +2315,9 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeNumOther())
             return this;
-        Value r = new Value(this);
-        r.flags |= NUM_OTHER;
-        r.num = null;
+        Value r = this.addFlags(NUM_OTHER).withNum(null);
         if (num != null)
-            r.joinSingleNumberAsFuzzy(num);
+            r = r.joinSingleNumberAsFuzzy(num);
         return canonicalize(r);
     }
 
@@ -2304,8 +2326,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (!isMaybeNaN())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~NUM_NAN;
+        Value r = this.removeFlags(NUM_NAN);
         return canonicalize(r);
     }
 
@@ -2314,8 +2335,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (!isMaybeInf())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~NUM_INF;
+        Value r = this.removeFlags(NUM_INF);
         return canonicalize(r);
     }
 
@@ -2329,17 +2349,21 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     /**
      * Joins the given single number as a fuzzy value.
      */
-    private void joinSingleNumberAsFuzzy(double v) {
+    private Value joinSingleNumberAsFuzzy(double v) {
+        int new_flags = flags;
         if (Double.isNaN(v))
-            flags |= NUM_NAN;
+            new_flags |= NUM_NAN;
         else if (Double.isInfinite(v))
-            flags |= NUM_INF;
+            new_flags |= NUM_INF;
         else if (isZero(v))
-            flags |= NUM_ZERO;
+            new_flags |= NUM_ZERO;
         else if (isUInt32(v))
-            flags |= NUM_UINT_POS; // not zero due to the zero-check above
+            new_flags |= NUM_UINT_POS; // not zero due to the zero-check above
         else
-            flags |= NUM_OTHER;
+            new_flags |= NUM_OTHER;
+
+        Value r = this.withFlags(new_flags);
+        return canonicalize(r);
     }
 
     @Override
@@ -2349,15 +2373,15 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
             return joinNumNaN();
         if (num != null && num.equals(v))
             return this;
-        Value r = new Value(this);
+
+        Value r = this;
         if (isNotNum())
-            r.num = v;
+            r = r.withNum(v);
         else {
             if (num != null) {
-                r.num = null;
-                r.joinSingleNumberAsFuzzy(num);
+                r = r.withNum(null).joinSingleNumberAsFuzzy(num);
             }
-            r.joinSingleNumberAsFuzzy(v);
+            r = r.joinSingleNumberAsFuzzy(v);
         }
         return canonicalize(r);
     }
@@ -2367,11 +2391,10 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeNaN())
             return this;
-        Value r = new Value(this);
-        r.flags |= NUM_NAN;
-        r.num = null;
+        Value r = this;
+        r = r.addFlags(NUM_NAN).withNum(null);
         if (num != null)
-            r.joinSingleNumberAsFuzzy(num);
+            r = r.joinSingleNumberAsFuzzy(num);
         return canonicalize(r);
     }
 
@@ -2380,53 +2403,45 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeInf())
             return this;
-        Value r = new Value(this);
-        r.flags |= NUM_INF;
-        r.num = null;
+        Value r = this;
+        r = r.addFlags(NUM_INF).withNum(null);
         if (num != null)
-            r.joinSingleNumberAsFuzzy(num);
+            r = r.joinSingleNumberAsFuzzy(num);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyUInt() {
-        Value r = new Value();
-        r.flags = NUM_UINT;
+        Value r = new Value().withFlags(NUM_UINT);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyUIntPos() {
-        Value r = new Value();
-        r.flags = NUM_UINT_POS;
+        Value r = new Value().withFlags(NUM_UINT_POS);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyNumOther() {
-        Value r = new Value();
-        r.flags = NUM_OTHER;
+        Value r = new Value().withFlags(NUM_OTHER);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyNumNotNaNInf() {
-        Value r = new Value();
-        r.flags = NUM_UINT | NUM_OTHER;
+        Value r = new Value().withFlags(NUM_UINT | NUM_OTHER);
         return canonicalize(r);
     }
 
     private static Value reallyMakeNumNaN() {
-        Value r = new Value();
-        r.flags = NUM_NAN;
+        Value r = new Value().withFlags(NUM_NAN);
         return canonicalize(r);
     }
 
     private static Value reallyMakeNumInf() {
-        Value r = new Value();
-        r.flags = NUM_INF;
+        Value r = new Value().withFlags(NUM_INF);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyNum() {
-        Value r = new Value();
-        r.flags = NUM;
+        Value r = new Value().withFlags(NUM);
         return canonicalize(r);
     }
 
@@ -2438,8 +2453,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
             return theNumNaN;
         if (Double.isInfinite(d))
             return theNumInf;
-        Value r = new Value();
-        r.num = d;
+        Value r = new Value().withNum(d);
         return canonicalize(r);
     }
 
@@ -2495,34 +2509,28 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public Value restrictToNum() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value();
-        r.flags = flags & NUM;
-        r.num = num;
+        Value r = new Value().withFlags(flags & NUM).withNum(num);
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotNum() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~NUM;
-        r.num = null;
+        Value r = this.removeFlags(NUM).withNum(null);
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotNumUInt() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~NUM_UINT;
+        Value r = this.removeFlags(NUM_UINT);
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotNumOther() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~NUM_OTHER;
+        Value r = this.removeFlags(NUM_OTHER);
         return canonicalize(r);
     }
 
@@ -2531,7 +2539,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeAnyStr() {
         checkNotPolymorphicOrUnknown();
-        return (flags & (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) == (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER); // note: ignoring excluded_strings and included_strings, see javadoc
+        return (flags & (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) == (STR_OTHERNUM | STR_IDENTIFIERPARTS
+                | STR_OTHER); // note: ignoring excluded_strings and included_strings, see javadoc
     }
 
     @Override
@@ -2561,7 +2570,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (included_strings != null)
             return included_strings.stream().anyMatch(s -> !Strings.isArrayIndex(s));
-        return (flags & (STR_OTHERNUM | STR_PREFIX | STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS | STR_OTHER | STR_JSON)) != 0
+        return (flags
+                & (STR_OTHERNUM | STR_PREFIX | STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS | STR_OTHER | STR_JSON)) != 0
                 || (str != null && !Strings.isArrayIndex(str));
     }
 
@@ -2589,7 +2599,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeStrOtherIdentifierParts() {
         checkNotPolymorphicOrUnknown();
-        return (flags & STR_OTHERIDENTIFIERPARTS) != 0; // note: ignoring excluded_strings and included_strings, see javadoc
+        return (flags & STR_OTHERIDENTIFIERPARTS) != 0; // note: ignoring excluded_strings and included_strings, see
+                                                        // javadoc
     }
 
     @Override
@@ -2613,7 +2624,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isStrJSON() {
         checkNotPolymorphicOrUnknown();
-        return (flags & PRIMITIVE) == STR_JSON && str == null && num == null && object_labels == null && getters == null && setters == null;
+        return (flags & PRIMITIVE) == STR_JSON && str == null && num == null && object_labels == null && getters == null
+                && setters == null;
     }
 
     @Override
@@ -2622,7 +2634,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (included_strings != null)
             return included_strings.stream().allMatch(Strings::isIdentifierParts);
         return (((flags & STR_IDENTIFIERPARTS) != 0 && (flags & PRIMITIVE & ~STR_IDENTIFIERPARTS) == 0)
-                || (str != null && Strings.isIdentifierParts(str))) && num == null && object_labels == null && getters == null && setters == null;
+                || (str != null && Strings.isIdentifierParts(str))) && num == null && object_labels == null
+                && getters == null && setters == null;
     }
 
     @Override
@@ -2631,7 +2644,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (included_strings != null)
             return included_strings.stream().allMatch(Strings::isIdentifier);
         return ((flags & PRIMITIVE) == STR_IDENTIFIER
-                || (str != null && Strings.isIdentifier(str))) && num == null && object_labels == null && getters == null && setters == null;
+                || (str != null && Strings.isIdentifier(str))) && num == null && object_labels == null
+                && getters == null && setters == null;
     }
 
     @Override
@@ -2658,8 +2672,10 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (isMaybeSingleStr() && !isMaybeSymbol())
             return true;
         return isNotStr() &&
-                (object_labels != null && object_labels.stream().filter(x -> x.getKind() == Kind.SYMBOL).count() == 1) &&
-                (object_labels != null && object_labels.stream().filter(x -> x.getKind() == Kind.SYMBOL && x.isSingleton()).count() == 1);
+                (object_labels != null && object_labels.stream().filter(x -> x.getKind() == Kind.SYMBOL).count() == 1)
+                &&
+                (object_labels != null && object_labels.stream()
+                        .filter(x -> x.getKind() == Kind.SYMBOL && x.isSingleton()).count() == 1);
     }
 
     @Override
@@ -2668,7 +2684,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         return (!isNotStr() && isMaybeSymbol()) ||
                 isMaybeFuzzyStr() ||
                 (object_labels != null && object_labels.stream().filter(x -> x.getKind() == Kind.SYMBOL).count() > 1) ||
-                (object_labels != null && object_labels.stream().filter(x -> x.getKind() == Kind.SYMBOL && !x.isSingleton()).count() > 0);
+                (object_labels != null && object_labels.stream()
+                        .filter(x -> x.getKind() == Kind.SYMBOL && !x.isSingleton()).count() > 0);
     }
 
     public boolean isMaybeOtherThanSymbol() {
@@ -2679,6 +2696,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         return object_labels != null && object_labels.stream().anyMatch(x -> x.getKind() != Kind.SYMBOL);
     }
 
+    @Override
     public boolean isMaybeOtherThanStrOrSymbol() {
         checkNotPolymorphicOrUnknown();
         if ((flags & (UNDEF | NULL | BOOL | NUM)) != 0 || num != null || getters != null || setters != null) {
@@ -2693,13 +2711,13 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     public Value restrictToNotSymbol() {
         if (object_labels == null)
             return this;
-        Value r = new Value(this);
-        r.object_labels = newSet();
+        Set<ObjectLabel> new_object_labels = newSet();
         for (ObjectLabel objlabel : object_labels)
             if (objlabel.getKind() != Kind.SYMBOL)
-                r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+                new_object_labels.add(objlabel);
+        if (new_object_labels.isEmpty())
+            new_object_labels = null;
+        Value r = this.withObjectLabels(newPersistentSet(new_object_labels));
         return canonicalize(r);
     }
 
@@ -2708,19 +2726,17 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public Value restrictToSymbol() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~PRIMITIVE;
-        r.num = null;
-        r.str = null;
-        r.getters = r.setters = null;
-        r.excluded_strings = r.included_strings = null;
-        r.object_labels = newSet();
+        Set<ObjectLabel> new_object_labels = newSet();
         if (object_labels != null)
             for (ObjectLabel objlabel : object_labels)
                 if (objlabel.getKind() == Kind.SYMBOL)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+                    new_object_labels.add(objlabel);
+        if (new_object_labels.isEmpty())
+            new_object_labels = null;
+
+        PersistentSet<ObjectLabel> persistent_object_labels = newPersistentSet(new_object_labels);
+        Value r = new Value(flags & (~PRIMITIVE), null, null, persistent_object_labels, null, null, null, null,
+                freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
@@ -2755,7 +2771,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     @Override
     public boolean isMaybeOtherThanStr() {
         checkNotPolymorphicOrUnknown();
-        return (flags & (UNDEF | NULL | BOOL | NUM)) != 0 || num != null || object_labels != null || getters != null || setters != null;
+        return (flags & (UNDEF | NULL | BOOL | NUM)) != 0 || num != null || object_labels != null || getters != null
+                || setters != null;
     }
 
     @Override
@@ -2763,33 +2780,34 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeAnyStr())
             return this;
-        Value r = new Value(this);
-        r.flags |= STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER;
-        r.flags &= ~STR_PREFIX;
-        r.str = null;
-        r.excluded_strings = r.included_strings = null;
+        int new_flags = flags;
+        new_flags |= STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER;
+        new_flags &= ~STR_PREFIX;
+
+        Value r = new Value(new_flags, num, null, object_labels, getters, setters, null, null, freeVariablePartitioning,
+                var);
         return canonicalize(r);
     }
 
-    private static Set<String> removeStringsIf(Set<String> ss, Predicate<String> p) {
+    private static PersistentSet<String> removeStringsIf(PersistentSet<String> ss, Predicate<String> p) {
         if (ss != null) {
-            ss = newSet(ss);
-            ss.removeIf(p);
+            ss = ss.removeIf(p);
             if (ss.isEmpty())
                 ss = null;
         }
         return ss;
     }
 
-    private static void removeIncludedStringsIf(Value r, Predicate<String> p) {
+    private static Value removeIncludedStringsIf(Value r, Predicate<String> p) {
         if (r.included_strings != null) {
-            r.included_strings = removeStringsIf(r.included_strings, p);
+            PersistentSet<String> new_strings = removeStringsIf(r.included_strings, p);
+            r = r.withIncludedStrings(new_strings);
             if (r.included_strings == null) {
-                r.flags &= ~STR;
-                r.str = null;
+                r = r.removeFlags(STR).withStr(null);
             }
-            r.fixSingletonIncluded();
+            r = r.fixSingletonIncluded();
         }
+        return r;
     }
 
     @Override
@@ -2797,13 +2815,16 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeStrUInt())
             return this;
-        Value r = new Value(this);
-        r.flags |= STR_UINT;
-        r.flags &= ~STR_PREFIX;
-        r.str = null;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Strings::isArrayIndex);
-        r.included_strings = null;
-        r.joinSingleStringOrPrefixString(this);
+        int new_flags = flags;
+        new_flags |= STR_UINT;
+        new_flags &= ~STR_PREFIX;
+
+        Value r = this.withFlags(new_flags).withStr(null);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(r.excluded_strings, Strings::isArrayIndex);
+        PersistentSet<String> new_included_strings = null;
+        r = r.withExcludedStrings(new_excluded_strings).withIncludedStrings(new_included_strings);
+        r = r.joinSingleStringOrPrefixString(this);
+
         return canonicalize(r);
     }
 
@@ -2812,13 +2833,16 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeStrOtherNum())
             return this;
-        Value r = new Value(this);
-        r.flags |= STR_OTHERNUM;
-        r.flags &= ~STR_PREFIX;
-        r.str = null;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Value::isStrOtherNum);
-        r.included_strings = null;
-        r.joinSingleStringOrPrefixString(this);
+        int new_flags = flags;
+        new_flags |= STR_OTHERNUM;
+        new_flags &= ~STR_PREFIX;
+
+        Value r = this.withFlags(new_flags).withStr(null);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(r.excluded_strings, Value::isStrOtherNum);
+        PersistentSet<String> new_included_strings = null;
+        r = r.withExcludedStrings(new_excluded_strings).withIncludedStrings(new_included_strings);
+        r = r.joinSingleStringOrPrefixString(this);
+
         return canonicalize(r);
     }
 
@@ -2827,12 +2851,15 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeStrIdentifier())
             return this;
-        Value r = new Value(this);
-        r.flags |= STR_IDENTIFIER;
-        r.flags &= ~STR_PREFIX;
-        r.str = null;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Strings::isIdentifier);
-        r.included_strings = null;
+
+        int new_flags = flags;
+
+        new_flags |= STR_IDENTIFIER;
+        new_flags &= ~STR_PREFIX;
+
+        Value r = this.withFlags(new_flags).withStr(null);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(excluded_strings, Strings::isIdentifier);
+        r = r.withExcludedStrings(new_excluded_strings).withIncludedStrings(null);
         r.joinSingleStringOrPrefixString(this);
         return canonicalize(r);
     }
@@ -2842,12 +2869,15 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if ((flags & STR_IDENTIFIERPARTS) == STR_IDENTIFIERPARTS)
             return this;
-        Value r = new Value(this);
-        r.flags |= STR_IDENTIFIERPARTS;
-        r.flags &= ~STR_PREFIX;
-        r.str = null;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Strings::isIdentifierParts);
-        r.included_strings = null;
+
+        int new_flags = flags;
+
+        new_flags |= STR_IDENTIFIERPARTS;
+        new_flags &= ~STR_PREFIX;
+
+        Value r = this.withFlags(new_flags).withStr(null);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(excluded_strings, Strings::isIdentifierParts);
+        r = r.withExcludedStrings(new_excluded_strings).withIncludedStrings(null);
         r.joinSingleStringOrPrefixString(this);
         return canonicalize(r);
     }
@@ -2857,12 +2887,17 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (isMaybeStrOther())
             return this;
-        Value r = new Value(this);
-        r.flags |= STR_OTHER;
-        r.flags &= ~STR_PREFIX;
-        r.str = null;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, s -> !Strings.isNumeric(s) && !Strings.isIdentifierParts(s));
-        r.included_strings = null;
+
+        int new_flags = flags;
+
+        new_flags |= STR_OTHER;
+        new_flags &= ~STR_PREFIX;
+
+        Value r = this.withFlags(new_flags).withStr(null);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(excluded_strings,
+                s -> !Strings.isNumeric(s) && !Strings.isIdentifierParts(s));
+        r = r.withExcludedStrings(new_excluded_strings).withIncludedStrings(null);
+
         r.joinSingleStringOrPrefixString(this);
         return canonicalize(r);
     }
@@ -2872,11 +2907,11 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (str != null && str.equals(s))
             return this;
-        Value r = new Value(this);
-        r.excluded_strings = removeStringsIf(r.excluded_strings, s::equals);
-        Value tmp = new Value();
-        tmp.str = s;
-        r.joinSingleStringOrPrefixString(tmp);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(excluded_strings, s::equals);
+        Value tmp = new Value().withStr(s);
+        Value r = this
+                .withExcludedStrings(new_excluded_strings)
+                .joinSingleStringOrPrefixString(tmp);
         return canonicalize(r);
     }
 
@@ -2887,13 +2922,13 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
             throw new AnalysisException("Prefix string can't be empty");
         if (isMaybeStrPrefix() && str.equals(s))
             return this;
-        Value r = new Value(this);
-        r.excluded_strings = removeStringsIf(r.excluded_strings, s2 -> s2.startsWith(s));
-        r.included_strings = null;
-        Value tmp = new Value();
-        tmp.flags |= STR_PREFIX;
-        tmp.str = s;
-        r.joinSingleStringOrPrefixString(tmp);
+        PersistentSet<String> new_excluded_string = removeStringsIf(excluded_strings, s2 -> s2.startsWith(s));
+        Value r = this
+                .withExcludedStrings(new_excluded_string)
+                .withIncludedStrings(null);
+        Value tmp = new Value().addFlags(STR_PREFIX).withStr(s);
+
+        r = r.joinSingleStringOrPrefixString(tmp);
         return canonicalize(r);
     }
 
@@ -2902,79 +2937,88 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * The current value is assumed not to be a single or prefix string.
      *
      * @param s
-     *                        the other single/prefix string
+     *                    the other single/prefix string
      * @param s_is_prefix
-     *                        if true, the other string represents a prefix string, otherwise it represents a single string
+     *                    if true, the other string represents a prefix string,
+     *                    otherwise it represents a single string
      * @return true if this value is modified
      */
-    private boolean joinSingleStringOrPrefixStringAsFuzzyNonPrefix(String s, boolean s_is_prefix) {
+    private Value joinSingleStringOrPrefixStringAsFuzzyNonPrefix(String s, boolean s_is_prefix) {
         int oldflags = flags;
+        int new_flags = flags;
+
         if (s_is_prefix) {
             if (included_strings == null) {
                 // no knowledge about the suffix of a prefix: set all str-bits
-                flags |= STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER;
+                new_flags |= STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER;
             } else { // if string set, we know all the suffixes, so we can make a precise join
                 if (included_strings.stream().anyMatch(Strings::isArrayIndex)) {
-                    flags |= STR_UINT;
+                    new_flags |= STR_UINT;
                 }
                 if (included_strings.stream().filter(str -> !Strings.isArrayIndex(str)).anyMatch(Strings::isNumeric)) {
-                    flags |= STR_OTHERNUM;
+                    new_flags |= STR_OTHERNUM;
                 }
                 if (included_strings.stream().anyMatch(Strings::isIdentifier)) {
-                    flags |= STR_IDENTIFIER;
+                    new_flags |= STR_IDENTIFIER;
                 }
                 if (included_strings.stream()
                         .filter(str -> !Strings.isIdentifier(str))
                         .filter(str -> !Strings.isArrayIndex(str))
                         .anyMatch(Strings::isIdentifierParts)) {
-                    flags |= STR_OTHERIDENTIFIERPARTS;
+                    new_flags |= STR_OTHERIDENTIFIERPARTS;
                 }
-                if (included_strings.stream().filter(str -> !Strings.isIdentifierParts(str)).anyMatch(str -> !Strings.isNumeric(str))) {
-                    flags |= STR_OTHER;
+                if (included_strings.stream().filter(str -> !Strings.isIdentifierParts(str))
+                        .anyMatch(str -> !Strings.isNumeric(str))) {
+                    new_flags |= STR_OTHER;
                 }
             }
         } else {
             // s is a single string
             if (Strings.isArrayIndex(s)) {
-                flags |= STR_UINT;
+                new_flags |= STR_UINT;
             } else if (Strings.isNumeric(s)) {
-                flags |= STR_OTHERNUM;
+                new_flags |= STR_OTHERNUM;
             } else if (Strings.isIdentifier(s)) {
-                flags |= STR_IDENTIFIER;
+                new_flags |= STR_IDENTIFIER;
             } else if (Strings.isOtherIdentifierParts(s)) {
-                flags |= STR_OTHERIDENTIFIERPARTS;
+                new_flags |= STR_OTHERIDENTIFIERPARTS;
             } else {
-                flags |= STR_OTHER;
+                new_flags |= STR_OTHER;
             }
         }
-        return flags != oldflags;
+
+        if (flags == oldflags)
+            return this;
+        Value r = this.withFlags(new_flags);
+        return canonicalize(r);
     }
 
     /**
-     * Joins the single string or prefix string part of the given value into this value.
+     * Joins the single string or prefix string part of the given value into this
+     * value.
      * No other parts of v are used.
-     * Also converts the existing single string or prefix string to a fuzzy value if necessary.
+     * Also converts the existing single string or prefix string to a fuzzy value if
+     * necessary.
      *
      * @return true if this value is modified
      */
-    private boolean joinSingleStringOrPrefixString(Value v) { // TODO: could be more precise in some cases...
-        // Note: join("xA", "xB") results in PREFIX("x"), but it could as well have resulted in IDENTSTR!
-        boolean modified = false;
+    private Value joinSingleStringOrPrefixString(Value v) { // TODO: could be more precise in some cases...
+        // Note: join("xA", "xB") results in PREFIX("x"), but it could as well have
+        // resulted in IDENTSTR!
         boolean this_is_prefix = (flags & STR_PREFIX) != 0;
         boolean v_is_prefix = (v.flags & STR_PREFIX) != 0;
         boolean switch_both_to_fuzzy = false;
+
+        Value r = this;
         if (str != null)
             if (v.str != null) {
                 if (!this_is_prefix && !v_is_prefix) {
                     if (str.equals(v.str)) {
                         // same single string
-                        return false;
+                        return this;
                     } else if (!Options.get().isNoStringSets()) {
                         // different single strings, and string sets enabled
-                        included_strings = newSet();
-                        included_strings.add(str);
-                        included_strings.add(v.str);
-                        modified = true;
+                        r = r.withIncludedStrings(newPersistentSet(Set.of(str, v.str)));
                     }
                 }
                 // both this and v are single/prefix strings
@@ -2982,46 +3026,41 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                 if (sharedPrefix.isEmpty()) {
                     switch_both_to_fuzzy = true;
                 } else {
-                    flags |= STR_PREFIX;
-                    modified |= !str.equals(v.str);
-                    str = sharedPrefix;
+                    r = r.addFlags(STR_PREFIX)
+                            .withStr(sharedPrefix);
                 }
             } else {
                 // this is a single/prefix string, v is not a single/prefix string
                 if ((v.flags & STR) != 0) {
-                    // this is a single/prefix string, v is non-prefix fuzzy, so switch this to fuzzy
+                    // this is a single/prefix string, v is non-prefix fuzzy, so switch this to
+                    // fuzzy
                     String oldstr = str;
-                    str = null;
-                    flags &= ~STR_PREFIX;
-                    joinSingleStringOrPrefixStringAsFuzzyNonPrefix(oldstr, this_is_prefix);
-                    modified = true;
+                    r = r.withStr(null)
+                            .removeFlags(~STR_PREFIX)
+                            .joinSingleStringOrPrefixStringAsFuzzyNonPrefix(oldstr, this_is_prefix);
                 } // otherwise v is empty. so do nothing
             }
         else if (v.str != null) {
             // this is not a single/prefix string, v is a single/prefix string
             if ((flags & STR) == 0) {
                 // this value is empty, so copy from v.str
-                str = v.str;
-                flags |= v.flags & STR_PREFIX;
-                modified = true;
+                r = r.withStr(v.str)
+                        .addFlags(v.flags & STR_PREFIX);
             } else {
                 // this is a non-prefix fuzzy, v is a single/prefix string
-                modified = joinSingleStringOrPrefixStringAsFuzzyNonPrefix(v.str, v_is_prefix);
                 if (included_strings != null && !v_is_prefix) {
-                    included_strings = newSet(included_strings);
-                    modified |= included_strings.add(v.str);
+                    r = r.withIncludedStrings(r.included_strings.add(v.str));
                 }
             }
         } // otherwise, neither is a single/prefix string so do nothing
         if (switch_both_to_fuzzy) {
             String oldstr = str;
-            str = null;
-            flags &= ~STR_PREFIX;
-            joinSingleStringOrPrefixStringAsFuzzyNonPrefix(v.str, v_is_prefix);
-            joinSingleStringOrPrefixStringAsFuzzyNonPrefix(oldstr, this_is_prefix);
-            modified = true;
+            r = r.withStr(null)
+                    .removeFlags(~STR_PREFIX)
+                    .joinSingleStringOrPrefixStringAsFuzzyNonPrefix(v.str, v_is_prefix)
+                    .joinSingleStringOrPrefixStringAsFuzzyNonPrefix(oldstr, this_is_prefix);
         }
-        return modified;
+        return canonicalize(r);
     }
 
     @Override
@@ -3037,7 +3076,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
 
     private boolean isMaybeStrIgnoreIncludedExcluded(String s) {
         if ((flags & STR_JSON) != 0)
-            return true; // TODO: check that the string is really a JSON string? (true is a sound approximation)
+            return true; // TODO: check that the string is really a JSON string? (true is a sound
+                         // approximation)
         if (str != null) {
             if ((flags & STR_PREFIX) != 0)
                 return s.startsWith(str);
@@ -3058,44 +3098,37 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     private static Value reallyMakeAnyStr() {
-        Value r = new Value();
-        r.flags |= STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER;
+        Value r = new Value().withFlags(STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyStrUInt() {
-        Value r = new Value();
-        r.flags |= STR_UINT;
+        Value r = new Value().withFlags(STR_UINT);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyStrOtherNum() {
-        Value r = new Value();
-        r.flags |= STR_OTHERNUM;
+        Value r = new Value().withFlags(STR_OTHERNUM);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyStrNumeric() {
-        Value r = new Value();
-        r.flags |= STR_UINT | STR_OTHERNUM;
+        Value r = new Value().withFlags(STR_OTHERNUM | STR_UINT);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyStrNotNumeric() {
-        Value r = new Value();
-        r.flags |= STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS | STR_OTHER;
+        Value r = new Value().withFlags(STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS | STR_OTHER);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyStrNotUInt() {
-        Value r = new Value();
-        r.flags |= STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS | STR_OTHER | STR_OTHERNUM;
+        Value r = new Value().withFlags(STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS | STR_OTHER | STR_OTHERNUM);
         return canonicalize(r);
     }
 
     private static Value reallyMakeAnyStrIdent() {
-        Value r = new Value();
-        r.flags |= STR_IDENTIFIER;
+        Value r = new Value().withFlags(STR_IDENTIFIER);
         return canonicalize(r);
     }
 
@@ -3114,7 +3147,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Constructs the value describing any string containing non-UInt32 numbers, including Infinity, -Infinity, and NaN.
+     * Constructs the value describing any string containing non-UInt32 numbers,
+     * including Infinity, -Infinity, and NaN.
      */
     public static Value makeAnyStrOtherNum() {
         return theStrOtherNum;
@@ -3149,8 +3183,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     private static Value reallyMakeJSONStr() {
-        Value r = new Value();
-        r.flags |= STR_JSON;
+        Value r = new Value().withFlags(STR_JSON);
         return canonicalize(r);
     }
 
@@ -3165,31 +3198,32 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Constructs the value describing the given string.
      */
     public static Value makeStr(String s) {
-        Value r = new Value();
-        r.str = s;
+        Value r = new Value().withStr(s);
         return canonicalize(r);
     }
 
     /**
+     * !!DEPRECATED!!
      * Constructs a temporary value describing the given string.
-     * The object is not canonicalized and should therefore not be stored in abstract states.
+     * The object is not canonicalized and should therefore not be stored in
+     * abstract states.
      */
-    public static Value makeTemporaryStr(String s) {
-        if (s == null)
-            throw new NullPointerException();
-        Value r = new Value();
-        r.str = s;
-        return r; // don't canonicalize here!
-    }
+    // public static Value makeTemporaryStr(String s) {
+    // if (s == null)
+    // throw new NullPointerException();
+    // Value r = new Value();
+    // r.str = s;
+    // return r; // don't canonicalize here!
+    // }
 
     @Override
     public Value restrictToStr() {
         checkNotPolymorphicOrUnknown();
         Value r = new Value();
-        r.flags = flags & STR;
-        r.str = str;
-        r.excluded_strings = excluded_strings;
-        r.included_strings = included_strings;
+        r.withFlags(flags & STR)
+                .withStr(str)
+                .withExcludedStrings(excluded_strings)
+                .withIncludedStrings(included_strings);
         return canonicalize(r);
     }
 
@@ -3198,15 +3232,22 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         Value r = new Value();
         if (included_strings != null) {
-            r.included_strings = included_strings.stream().filter(Strings::isNumeric).collect(Collectors.toSet());
+            Set<String> new_included_strings = included_strings.stream().filter(Strings::isNumeric)
+                    .collect(Collectors.toSet());
+            r = r.withIncludedStrings(newPersistentSet(new_included_strings));
         }
-        r.flags = flags & (STR_OTHERNUM | STR_UINT);
+
+        int new_flags = flags & (STR_OTHERNUM | STR_UINT);
+        String new_str = null;
+        new_flags = flags & (STR_OTHERNUM | STR_UINT);
         if (isMaybeStrPrefix() && Strings.isNumeric(str)) {
-            r.flags |= STR_PREFIX;
-            r.str = str;
+            new_flags |= STR_PREFIX;
+            new_str = str;
         } else if (str != null && Strings.isNumeric(str))
-            r.str = str;
-        r.cleanupIncludedExcluded();
+            new_str = str;
+
+        r = r.withFlags(new_flags).withStr(new_str)
+                .cleanupIncludedExcluded();
         return canonicalize(r);
     }
 
@@ -3215,85 +3256,88 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         Value r = new Value();
         if (included_strings != null) {
-            r.included_strings = included_strings.stream().filter(s -> !Strings.isNumeric(s)).collect(Collectors.toSet());
+            Set<String> new_included_strings = included_strings.stream().filter(s -> !Strings.isNumeric(s))
+                    .collect(Collectors.toSet());
+            r = r.withIncludedStrings(newPersistentSet(new_included_strings));
         }
-        r.flags = flags & (STR & ~(STR_OTHERNUM | STR_UINT));
+
+        int new_flags = flags & ~(STR_OTHERNUM | STR_UINT);
+        String new_str = null;
         if (isMaybeStrPrefix()) {
-            r.flags |= STR_PREFIX;
-            r.str = str;
+            new_flags |= STR_PREFIX;
+            new_str = str;
         } else if (str != null && !Strings.isNumeric(str))
-            r.str = str;
-        r.cleanupIncludedExcluded();
+            new_str = str;
+
+        r = r.withFlags(new_flags).withStr(new_str)
+                .cleanupIncludedExcluded();
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotStr() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~STR;
-        r.str = null;
-        r.excluded_strings = r.included_strings = null;
+        Value r = this.removeFlags(STR).withStr(null)
+                .withIncludedStrings(null)
+                .withExcludedStrings(null);
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotStrIdentifierParts() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~STR_IDENTIFIERPARTS;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Strings::isIdentifierParts);
-        removeIncludedStringsIf(r, Strings::isIdentifierParts);
+        Value r = this;
+        r = r.removeFlags(STR_IDENTIFIERPARTS);
+        r = r.withExcludedStrings(removeStringsIf(r.excluded_strings, Strings::isIdentifierParts));
+        r = removeIncludedStringsIf(r, Strings::isIdentifierParts);
         return canonicalize(r);
     }
 
     @Override
     public Value restrictToNotStrPrefix() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        if ((r.flags & STR_PREFIX) != 0) {
-            r.str = null;
-        }
-        r.flags &= ~STR_PREFIX;
-        r.excluded_strings = null;
-        if ((r.flags & STR) == 0)
-            r.included_strings = null;
-        return canonicalize(r);
+
+        return new Value(flags & ~STR_PREFIX, num,
+                (flags & STR_PREFIX) != 0 ? null : str,
+                object_labels, getters, setters, null,
+                (flags & STR) == 0 ? null : included_strings,
+                freeVariablePartitioning, var);
     }
 
     @Override
     public Value restrictToNotStrUInt() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~STR_UINT;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Strings::isArrayIndex);
-        removeIncludedStringsIf(r, Strings::isArrayIndex);
-        return canonicalize(r);
+
+        PersistentSet<String> new_excluded_strings = removeStringsIf(excluded_strings, Strings::isArrayIndex);
+        Value r = this.removeFlags(STR_UINT).withExcludedStrings(new_excluded_strings);
+        return canonicalize(removeIncludedStringsIf(r, Strings::isArrayIndex));
     }
 
     @Override
     public Value restrictToNotStrOtherNum() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~STR_OTHERNUM;
-        r.excluded_strings = removeStringsIf(r.excluded_strings, Value::isStrOtherNum);
-        removeIncludedStringsIf(r, Value::isStrOtherNum);
-        return canonicalize(r);
+        PersistentSet<String> new_excluded_strings = removeStringsIf(excluded_strings, Value::isStrOtherNum);
+        Value r = this.removeFlags(STR_OTHERNUM).withExcludedStrings(new_excluded_strings);
+        return canonicalize(removeIncludedStringsIf(r, Value::isStrOtherNum));
     }
 
     private static boolean isStrOtherNum(String s) {
-        return (Strings.isNumeric(s) && !Strings.isArrayIndex(s)) || s.equals("Infinity") || s.equals("-Infinity") || s.equals("NaN");
+        return (Strings.isNumeric(s) && !Strings.isArrayIndex(s)) || s.equals("Infinity") || s.equals("-Infinity")
+                || s.equals("NaN");
     }
 
     // @Override
     // public boolean isStrDisjoint(Str other) {
     // if (Options.get().isDebugOrTestEnabled()) {
     // if (isMaybeOtherThanStr() || other.isMaybeOtherThanStr()) {
-    // throw new AnalysisException(String.format("Expects String-only values, got (%s, %s)", this, other));
+    // throw new AnalysisException(String.format("Expects String-only values, got
+    // (%s, %s)", this, other));
     // }
     // }
-    // return (this.mustOnlyBeIdentifierCharacters() && other.mustContainNonIdentifierCharacters()) ||
-    // (this.mustContainNonIdentifierCharacters() && other.mustOnlyBeIdentifierCharacters()); // TODO: add more cases ...
+    // return (this.mustOnlyBeIdentifierCharacters() &&
+    // other.mustContainNonIdentifierCharacters()) ||
+    // (this.mustContainNonIdentifierCharacters() &&
+    // other.mustOnlyBeIdentifierCharacters()); // TODO: add more cases ...
     // }
 
     @Override
@@ -3303,7 +3347,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                 throw new AnalysisException(String.format("Expects String-only values, got (%s, %s)", this, other));
             }
         }
-        return !this.mustOnlyBeIdentifierCharacters() || !other.mustContainNonIdentifierCharacters(); // TODO: add more cases ...
+        return !this.mustOnlyBeIdentifierCharacters() || !other.mustContainNonIdentifierCharacters(); // TODO: add more
+                                                                                                      // cases ...
     }
 
     @Override
@@ -3317,61 +3362,65 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     @Override
-    public Set<String> getExcludedStrings() {
+    public PersistentSet<String> getExcludedStrings() {
         return excluded_strings;
     }
 
+    /**
+     * TODO: Double check this is right.
+     */
     @Override
-    public Value restrictToNotStrings(Set<String> strings) {
+    public Value restrictToNotStrings(PersistentSet<String> strings) {
         checkNotPolymorphicOrUnknown();
         if (Options.get().isNoStringSets() || isNotStr())
             return this;
-        strings = strings.stream().filter(this::isMaybeStr).collect(Collectors.toSet());
+        strings = newPersistentSet(strings.stream().filter(this::isMaybeStr).collect(Collectors.toSet()));
         if (strings.isEmpty())
             return this;
-        Value v = new Value(this);
+
+        Value v = this;
         if (str != null && !isMaybeStrPrefix()) {
             // single string
             if (strings.contains(str))
-                v.str = null;
+                v = v.withStr(str);
         } else if (v.included_strings != null) {
             // fuzzy, with included strings
-            v.included_strings = newSet(v.included_strings);
-            v.included_strings.removeAll(strings);
+            v = v.withIncludedStrings(v.included_strings.subtract(strings));
             if (v.included_strings.isEmpty()) {
-                v.included_strings = null;
-                v.flags &= ~STR;
-                v.str = null;
+                v = v.withIncludedStrings(null).removeFlags(STR).withStr(null);
             } else
-                v.fixSingletonIncluded();
+                v = v.fixSingletonIncluded();
         } else {
             // fuzzy, without explicitly included strings
-            v.excluded_strings = newSet(strings);
+            v = v.withExcludedStrings(strings);
             if (excluded_strings != null)
-                v.excluded_strings.addAll(excluded_strings);
+                v = v.withExcludedStrings(v.excluded_strings.union(excluded_strings));
         }
         return canonicalize(v);
     }
 
     /**
-     * Constructs a value that is any string except for the provided collection of strings.
+     * Constructs a value that is any string except for the provided collection of
+     * strings.
      * (Used by ReaGenT.)
      */
     public static Value makeAnyStrExcluding(Collection<String> strings) {
-        Value r = new Value(makeAnyStr());
-        r.excluded_strings = newSet();
-        r.excluded_strings.addAll(strings);
+        Value r = makeAnyStr().withExcludedStrings(newPersistentSet(strings));
         return canonicalize(r);
     }
 
     /**
      * Converts a singleton included_strings into an ordinary singleton string.
      */
-    private void fixSingletonIncluded() {
+    private Value fixSingletonIncluded() {
         if (included_strings != null && included_strings.size() == 1) {
-            str = included_strings.iterator().next();
-            included_strings = null;
-            flags &= ~STR;
+            Value r = new Value()
+                    .removeFlags(STR)
+                    .withStr(included_strings.iterator().next())
+                    .withIncludedStrings(null);
+            return canonicalize(r);
+        } else {
+            return this;
         }
     }
 
@@ -3381,18 +3430,23 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (excluded_strings == null && included_strings == null) {
             return this;
         }
-        Value r = new Value(this);
-        r.excluded_strings = r.included_strings = null;
+        Value r = this
+                .withExcludedStrings(null)
+                .withIncludedStrings(null);
         return canonicalize(r);
     }
 
     // public Value removeStringsAndSymbols(Set<PKey> stringssymbols) {
     // checkNotPolymorphicOrUnknown();
-    // Set<String> ss = stringssymbols.stream().filter(x -> x instanceof PKey.StringPKey).map(x -> ((PKey.StringPKey)x).getStr()).collect(Collectors.toSet());
+    // Set<String> ss = stringssymbols.stream().filter(x -> x instanceof
+    // PKey.StringPKey).map(x ->
+    // ((PKey.StringPKey)x).getStr()).collect(Collectors.toSet());
     // Value r = excludeStrings(ss);
-    // Set<ObjectLabel> syms = stringssymbols.stream().filter(x -> x instanceof PKey.SymbolPKey).map(x -> ((PKey.SymbolPKey)x).getObjectLabel()).collect(Collectors.toSet());
+    // Set<ObjectLabel> syms = stringssymbols.stream().filter(x -> x instanceof
+    // PKey.SymbolPKey).map(x ->
+    // ((PKey.SymbolPKey)x).getObjectLabel()).collect(Collectors.toSet());
     // if (isMaybeSymbol() && !syms.isEmpty()) {
-    // r.object_labels = newSet(r.object_labels);
+    // r.object_labels = newPersistentSet(r.object_labels);
     // r.object_labels.removeAll(syms);
     // }
     // return canonicalize(r);
@@ -3402,9 +3456,9 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Constructs a new value representing the given strings.
      */
     public static Value makeStrings(Collection<String> strings) {
-        Value r = new Value(join(strings.stream().map(Value::makeStr).collect(Collectors.toSet())));
+        Value r = join(strings.stream().map(Value::makeStr).collect(Collectors.toSet()));
         if (!Options.get().isNoStringSets() && r.isMaybeFuzzyStr())
-            r.included_strings = newSet(strings);
+            r = r.withIncludedStrings(newPersistentSet(strings));
         return canonicalize(r);
     }
 
@@ -3412,13 +3466,14 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Constructs a new value representing the given strings and symbols.
      */
     public static Value makeStringsAndSymbols(Collection<PKey> properties) {
-        Value rSymb = new Value(join(properties.stream().map(PKey::toValue).collect(Collectors.toSet())));
-        Value rStr = makeStrings(properties.stream().filter(x -> x instanceof PKey.StringPKey).map(x -> ((PKey.StringPKey) x).getStr()).collect(Collectors.toList()));
-        return rSymb.join(rStr);
+        Value rSymb = join(properties.stream().map(PKey::toValue).collect(Collectors.toSet()));
+        Value rStr = makeStrings(properties.stream().filter(x -> x instanceof PKey.StringPKey)
+                .map(x -> ((PKey.StringPKey) x).getStr()).collect(Collectors.toList()));
+        return canonicalize(rSymb.join(rStr));
     }
 
     @Override
-    public Set<String> getIncludedStrings() {
+    public PersistentSet<String> getIncludedStrings() {
         return included_strings;
     }
 
@@ -3428,7 +3483,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     @Override
-    public Set<String> getAllKnownStr() {
+    public PersistentSet<String> getAllKnownStr() {
         if (isMaybeSingleStr())
             return singleton(str);
         else if (included_strings != null)
@@ -3445,9 +3500,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     public static Value makeObject(ObjectLabel v) {
         if (v == null)
             throw new NullPointerException();
-        Value r = new Value();
-        r.object_labels = newSet();
-        r.object_labels.add(v);
+        Value r = new Value().withObjectLabels(singleton(v));
         return canonicalize(r);
     }
 
@@ -3465,10 +3518,10 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     /**
      * Constructs the value describing the given object labels.
      */
-    public static Value makeObject(Set<ObjectLabel> v) {
+    public static Value makeObject(PersistentSet<ObjectLabel> v) {
         Value r = new Value();
         if (!v.isEmpty())
-            r.object_labels = newSet(v);
+            r = r.withObjectLabels(v);
         return canonicalize(r);
     }
 
@@ -3479,73 +3532,79 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (object_labels != null && object_labels.contains(objlabel))
             return this;
-        Value r = new Value(this);
+        Value r = this;
         if (r.object_labels == null)
-            r.object_labels = newSet();
+            r = r.withObjectLabels(newPersistentSet());
         else
-            r.object_labels = newSet(r.object_labels);
-        r.object_labels.add(objlabel);
+            r = r.withObjectLabels(r.object_labels.add(objlabel));
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but only with non-symbol object values.
+     * Constructs a value as a copy of this value but only with non-symbol object
+     * values.
      */
     public Value restrictToNonSymbolObject() {
         checkNotPolymorphicOrUnknown();
         if (!isMaybePrimitiveOrSymbol() && !isMaybeGetterOrSetter())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~PRIMITIVE;
-        r.num = null;
-        r.str = null;
-        r.getters = r.setters = null;
-        r.excluded_strings = r.included_strings = null;
-        r.object_labels = newSet();
+
+        int new_flags = flags & ~PRIMITIVE;
+        Set<ObjectLabel> new_object_labels = newSet();
         if (object_labels != null)
             for (ObjectLabel objlabel : object_labels)
                 if (objlabel.getKind() != Kind.SYMBOL)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
-        return canonicalize(r);
+                    new_object_labels.add(objlabel);
+        if (new_object_labels.isEmpty())
+            new_object_labels = null;
+
+        return new Value(new_flags, null, null,
+                newPersistentSet(new_object_labels),
+                null, null, null, null, freeVariablePartitioning,
+                var);
     }
 
     /**
-     * Constructs a value as a copy of this value but only with values with typeof "object".
+     * Constructs a value as a copy of this value but only with values with typeof
+     * "object".
      */
+    // TODO: Maybe optimize?
     public Value restrictToTypeofObject() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= (~PRIMITIVE) | NULL;
-        r.num = null;
-        r.str = null;
-        r.getters = r.setters = null;
-        r.excluded_strings = r.included_strings = null;
-        r.object_labels = newSet();
+        int new_flags = flags & ((~PRIMITIVE) | NULL);
+        Set<ObjectLabel> new_object_labels = newSet();
         if (object_labels != null)
             for (ObjectLabel objlabel : object_labels)
                 if (objlabel.getKind() != Kind.FUNCTION && objlabel.getKind() != Kind.SYMBOL)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+                    new_object_labels.add(objlabel);
+        if (new_object_labels.isEmpty())
+            new_object_labels = null;
+
+        Value r = new Value(new_flags, null, null,
+                newPersistentSet(new_object_labels),
+                null, null, null, null, freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but only with values that do not have typeof "object".
+     * Constructs a value as a copy of this value but only with values that do not
+     * have typeof "object".
      */
     public Value restrictToNotTypeofObject() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~NULL;
-        r.object_labels = newSet();
+
+        int new_flags = flags & ~PRIMITIVE;
+        Set<ObjectLabel> new_object_labels = newSet();
+
         if (object_labels != null)
             for (ObjectLabel objlabel : object_labels)
                 if (objlabel.getKind() == Kind.FUNCTION || objlabel.getKind() == Kind.SYMBOL)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+                    new_object_labels.add(objlabel);
+        if (new_object_labels.isEmpty())
+            new_object_labels = null;
+
+        Value r = this.withFlags(new_flags)
+                .withObjectLabels(newPersistentSet(new_object_labels));
         return canonicalize(r);
     }
 
@@ -3554,19 +3613,23 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public Value restrictToFunction() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.flags &= ~PRIMITIVE;
-        r.num = null;
-        r.str = null;
-        r.excluded_strings = r.included_strings = null;
-        r.object_labels = newSet();
-        r.getters = r.setters = null;
-        if (object_labels != null)
-            for (ObjectLabel objlabel : object_labels)
-                if (objlabel.getKind() == Kind.FUNCTION)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+        int new_flags = flags & ~PRIMITIVE;
+        Set<ObjectLabel> new_object_labels = newSet();
+
+        if (object_labels != null) {
+            for (ObjectLabel objlabel : object_labels) {
+                if (objlabel.getKind() == Kind.FUNCTION) {
+                    new_object_labels.add(objlabel);
+                }
+            }
+        }
+        if (new_object_labels.isEmpty()) {
+            new_object_labels = null;
+        }
+
+        Value r = new Value(new_flags, null, null,
+                newPersistentSet(new_object_labels),
+                null, null, null, null, freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
@@ -3575,70 +3638,74 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public Value restrictToNotFunction() {
         checkNotPolymorphicOrUnknown();
-        Value r = new Value(this);
-        r.object_labels = newSet();
-        if (object_labels != null)
-            for (ObjectLabel objlabel : object_labels)
-                if (objlabel.getKind() != Kind.FUNCTION)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+        Set<ObjectLabel> new_object_labels = newSet();
+
+        if (object_labels != null) {
+            for (ObjectLabel objlabel : object_labels) {
+                if (objlabel.getKind() != Kind.FUNCTION) {
+                    new_object_labels.add(objlabel);
+                }
+            }
+        }
+        if (new_object_labels.isEmpty()) {
+            new_object_labels = null;
+        }
+        Value r = this.withObjectLabels(newPersistentSet(new_object_labels));
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but only with non-object values. (Symbols are not objects.)
+     * Constructs a value as a copy of this value but only with non-object values.
+     * (Symbols are not objects.)
      * Unknown, polymorphic values, and getters/setters are returned unmodified.
      */
     public Value restrictToNotObject() {
         if (object_labels == null)
             return this;
-        Value r = new Value(this);
-        r.object_labels = newSet();
+        Set<ObjectLabel> new_object_labels = newSet();
         if (object_labels != null)
             for (ObjectLabel objlabel : object_labels)
                 if (objlabel.getKind() == Kind.SYMBOL)
-                    r.object_labels.add(objlabel);
-        if (r.object_labels.isEmpty())
-            r.object_labels = null;
+                    new_object_labels.add(objlabel);
+        if (new_object_labels.isEmpty())
+            new_object_labels = null;
+        Value r = this.withObjectLabels(newPersistentSet(new_object_labels));
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with the given object labels removed.
+     * Constructs a value as a copy of this value but with the given object labels
+     * removed.
      * 
      * @throws AnalysisException
-     *                               if the value contains getters or setters.
+     *                           if the value contains getters or setters.
      */
-    public Value removeObjects(Set<ObjectLabel> objs) {
+    public Value removeObjects(PersistentSet<ObjectLabel> objs) {
         checkNotPolymorphicOrUnknown();
         checkNoGettersSetters();
         if (object_labels == null)
             return this;
-        Value r = new Value(this);
-        r.object_labels = newSet(r.object_labels);
-        r.object_labels.removeAll(objs);
+        Value r = this;
+        r = r.withObjectLabels(r.object_labels.subtract(objs));
         if (r.object_labels.isEmpty())
-            r.object_labels = null;
+            r = r.withObjectLabels(null);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with only the given object labels.
+     * Constructs a value as a copy of this value but with only the given object
+     * labels.
      */
     public Value restrictToObject(Collection<ObjectLabel> objs) {
         checkNotPolymorphicOrUnknown();
         if (object_labels == null)
             return this;
-        Value r = new Value(this);
-        r.flags &= ~PRIMITIVE;
-        r.num = null;
-        r.str = null;
-        r.excluded_strings = r.included_strings = null;
-        r.object_labels = newSet(object_labels);
-        r.object_labels.retainAll(objs);
+        Value r = this;
+        int new_flags = flags & ~PRIMITIVE;
+        r = r.withFlags(new_flags)
+                .withObjectLabels(object_labels.retainAll(objs));
         if (r.object_labels.isEmpty())
-            r.object_labels = null;
+            r = r.withObjectLabels(null);
         return canonicalize(r);
     }
 
@@ -3646,9 +3713,9 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Converts the object labels in this value into getters.
      */
     public Value makeGetter() {
-        Value r = new Value(this);
-        r.getters = object_labels;
-        r.object_labels = null;
+        Value r = this
+                .withGetters(object_labels)
+                .withObjectLabels(null);
         return canonicalize(r);
     }
 
@@ -3656,37 +3723,39 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Converts the object labels in this value into setters.
      */
     public Value makeSetter() {
-        Value r = new Value(this);
-        r.setters = object_labels;
-        r.object_labels = null;
+        Value r = this
+                .withSetters(object_labels)
+                .withObjectLabels(null);
         return canonicalize(r);
     }
 
     /**
      * Constructs a value as a copy of this value but with object labels summarized.
-     * If s is null or the value is unknown or polymorphic, this value is returned instead.
+     * If s is null or the value is unknown or polymorphic, this value is returned
+     * instead.
      */
     public Value summarize(Summarized s) {
         if (s == null || isUnknown() || isPolymorphic())
             return this;
-        Set<ObjectLabel> ss = s.summarize(object_labels);
-        Set<ObjectLabel> ss_getters = s.summarize(getters);
-        Set<ObjectLabel> ss_setters = s.summarize(setters);
+        Set<ObjectLabel> ss = s.summarize(object_labels.toMutableSet());
+        Set<ObjectLabel> ss_getters = s.summarize(getters.toMutableSet());
+        Set<ObjectLabel> ss_setters = s.summarize(setters.toMutableSet());
+
         if ((ss == null || ss.equals(object_labels))
                 && (ss_getters == null || ss_getters.equals(getters))
                 && (ss_setters == null || ss_setters.equals(setters)))
             return this;
-        Value r = new Value(this);
+
+        Value r = this;
         if (ss != null && ss.isEmpty())
             ss = null;
-        r.object_labels = ss;
+        r = r.withObjectLabels(newPersistentSet(ss));
         if (ss_getters != null && ss_getters.isEmpty())
             ss_getters = null;
-        r.getters = ss_getters;
+        r = r.withGetters(newPersistentSet(ss_getters));
         if (ss_setters != null && ss_setters.isEmpty())
             ss_setters = null;
-        r.setters = ss_setters;
-        r.flags |= MODIFIED;
+        r = r.withSetters(newPersistentSet(ss_setters));
         return canonicalize(r);
     }
 
@@ -3698,7 +3767,8 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (isPolymorphic())
             return (flags & (PRESENT_DATA | PRESENT_ACCESSOR)) != 0;
         else
-            return (flags & PRIMITIVE) != 0 || num != null || str != null || object_labels != null || getters != null || setters != null;
+            return (flags & PRIMITIVE) != 0 || num != null || str != null || object_labels != null || getters != null
+                    || setters != null;
     }
 
     /**
@@ -3760,8 +3830,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotUnknown();
         if (isExtendedScope())
             return this;
-        Value r = new Value(this);
-        r.flags |= EXTENDEDSCOPE;
+        Value r = this.addFlags(EXTENDEDSCOPE);
         return canonicalize(r);
     }
 
@@ -3821,70 +3890,65 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns true if this value may be a non-object, including undefined, null, and symbols.
+     * Returns true if this value may be a non-object, including undefined, null,
+     * and symbols.
      */
     public boolean isMaybePrimitiveOrSymbol() {
         return isMaybePrimitive() || isMaybeSymbol();
     }
 
     /**
-     * Returns the (immutable) set of object labels (including symbols).
-     * Returns the empty set for polymorphic and 'unknown' values.
+     * Returns the persistent set of object labels (including symbols).
+     * Returns the empty persistent set for polymorphic and 'unknown' values.
      * Getters and setters are ignored (see {@link #getAllObjectLabels()}).
      */
-    public Set<ObjectLabel> getObjectLabels() {
+    public PersistentSet<ObjectLabel> getObjectLabels() {
         if (object_labels == null)
-            return Collections.emptySet();
-        if (Options.get().isDebugOrTestEnabled())
-            return Collections.unmodifiableSet(object_labels);
+            return PersistentSet.empty();
         return object_labels;
     }
 
     /**
-     * Returns the (immutable) set of object labels.
+     * Returns the persistent set of object labels.
      * Returns the empty set for polymorphic and 'unknown' values.
      * Getters and setters are included (see {@link #getObjectLabels()}).
      */
-    public Set<ObjectLabel> getAllObjectLabels() {
+    public PersistentSet<ObjectLabel> getAllObjectLabels() {
         if (object_labels == null && getters == null && setters == null)
-            return Collections.emptySet();
+            return PersistentSet.empty();
         if (getters == null && setters == null)
             return getObjectLabels();
-        Set<ObjectLabel> s = newSet();
+        PersistentSet<ObjectLabel> s = newPersistentSet();
         if (object_labels != null)
-            s.addAll(object_labels);
+            s = s.union(object_labels);
         if (getters != null)
-            s.addAll(getters);
+            s = s.union(getters);
         if (setters != null)
-            s.addAll(setters);
-        if (Options.get().isDebugOrTestEnabled())
-            return Collections.unmodifiableSet(s);
+            s = s.union(setters);
         return s;
     }
 
     /**
-     * Returns the (immutable) set of object labels representing symbols.
+     * Returns the persistent set of object labels representing symbols.
      */
     @Override
-    public Set<ObjectLabel> getSymbols() {
+    public PersistentSet<ObjectLabel> getSymbols() {
         if (object_labels == null)
-            return Collections.emptySet();
+            return PersistentSet.empty();
         Set<ObjectLabel> s = newSet();
         for (ObjectLabel objlabel : object_labels)
             if (objlabel.getKind() == Kind.SYMBOL)
                 s.add(objlabel);
-        return s;
+        return newPersistentSet(s);
     }
 
     /**
      * Returns the (immutable) set of getters.
      * Returns the empty set for polymorphic and 'unknown' values.
      */
-    public Set<ObjectLabel> getGetters() {
+    public PersistentSet<ObjectLabel> getGetters() {
         if (getters == null)
-            return Collections.emptySet();
-        if (Options.get().isDebugOrTestEnabled())
-            return Collections.unmodifiableSet(getters);
+            return PersistentSet.empty();
         return getters;
     }
 
@@ -3892,21 +3956,20 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Returns the (immutable) set of setters.
      * Returns the empty set for polymorphic and 'unknown' values.
      */
-    public Set<ObjectLabel> getSetters() {
+    public PersistentSet<ObjectLabel> getSetters() {
         if (setters == null)
-            return Collections.emptySet();
-        if (Options.get().isDebugOrTestEnabled())
-            return Collections.unmodifiableSet(setters);
+            return PersistentSet.empty();
         return setters;
     }
 
     /**
-     * Returns a copy of this value where the given object label has been replaced, if present.
+     * Returns a copy of this value where the given object label has been replaced,
+     * if present.
      *
      * @param oldlabel
-     *                     The object label to replace.
+     *                 The object label to replace.
      * @param newlabel
-     *                     The object label to replace oldlabel with.
+     *                 The object label to replace oldlabel with.
      */
     public Value replaceObjectLabel(ObjectLabel oldlabel, ObjectLabel newlabel) {
         if (oldlabel.equals(newlabel))
@@ -3915,34 +3978,37 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                 (getters == null || !getters.contains(oldlabel)) &&
                 (setters == null || !setters.contains(oldlabel)))
             return this;
-        Value r = new Value(this);
+        Value r = this;
         if (object_labels != null) {
-            Set<ObjectLabel> newobjlabels = newSet(object_labels);
-            newobjlabels.remove(oldlabel);
-            newobjlabels.add(newlabel);
-            r.object_labels = newobjlabels;
+            PersistentSet<ObjectLabel> newobjlabels = object_labels;
+            newobjlabels = newobjlabels.remove(oldlabel);
+            newobjlabels = newobjlabels.add(newlabel);
+            r = r.withObjectLabels(newobjlabels);
         }
         if (getters != null) {
-            Set<ObjectLabel> newgetters = newSet(getters);
+            PersistentSet<ObjectLabel> newgetters = getters;
             newgetters.remove(oldlabel);
             newgetters.add(newlabel);
-            r.getters = newgetters;
+            r = r.withGetters(newgetters);
         }
         if (setters != null) {
-            Set<ObjectLabel> newsetters = newSet(setters);
+            PersistentSet<ObjectLabel> newsetters = setters;
             newsetters.remove(oldlabel);
             newsetters.add(newlabel);
-            r.setters = newsetters;
+            r = r.withSetters(newsetters);
         }
         return canonicalize(r);
     }
 
     // /**
-    // * Returns a copy of this value where the object labels have been replaced according to the given map.
-    // * Does not change modified flags. Object labels not in the key set of the map are unchanged.
+    // * Returns a copy of this value where the object labels have been replaced
+    // according to the given map.
+    // * Does not change modified flags. Object labels not in the key set of the map
+    // are unchanged.
     // *
     // * @param m A map between old object labels and new object labels.
-    // * @return A copy of the old value with the object labels replaced according to the map.
+    // * @return A copy of the old value with the object labels replaced according
+    // to the map.
     // */
     // public Value replaceObjectLabels(Map<ObjectLabel, ObjectLabel> m) {
     // if (isPolymorphic()) {
@@ -3953,26 +4019,27 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     // r.var = pr;
     // return canonicalize(r);
     // }
-    // if ((object_labels == null && getters == null && setters == null) || m.isEmpty())
+    // if ((object_labels == null && getters == null && setters == null) ||
+    // m.isEmpty())
     // return this;
     // Value r = new Value(this);
     // if (object_labels != null) {
-    // Set<ObjectLabel> newobjlabels = newSet();
+    // Set<ObjectLabel> newobjlabels = newPersistentSet();
     // for (ObjectLabel objlabel : object_labels)
     // newobjlabels.add(Renaming.apply(m, objlabel));
     // r.object_labels = newobjlabels;
     // }
     // if (getters != null) {
-    // Set<ObjectLabel> newgetters = newSet();
+    // Set<ObjectLabel> newgetters = newPersistentSet();
     // for (ObjectLabel objlabel : getters)
     // newgetters.add(Renaming.apply(m, objlabel));
     // r.getters = newgetters;
     // }
     // if (setters != null) {
-    // Set<ObjectLabel> newsetters = newSet();
+    // Set<ObjectLabel> newPersistentSetters = newPersistentSet();
     // for (ObjectLabel objlabel : setters)
-    // newsetters.add(Renaming.apply(m, objlabel));
-    // r.setters = newsetters;
+    // newPersistentSetters.add(Renaming.apply(m, objlabel));
+    // r.setters = newPersistentSetters;
     // }
     // return canonicalize(r);
     // }
@@ -3981,20 +4048,23 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Checks that this value is non-empty (or polymorphic).
      *
      * @throws AnalysisException
-     *                               if empty
+     *                           if empty
      */
     public void assertNonEmpty() {
         checkNotUnknown();
         if (isPolymorphic())
             return;
-        if ((flags & PRIMITIVE) == 0 && num == null && str == null && object_labels == null && getters == null && setters == null
+        if ((flags & PRIMITIVE) == 0 && num == null && str == null && object_labels == null && getters == null
+                && setters == null
                 && !Options.get().isPropagateDeadFlow())
             throw new AnalysisException("Empty value");
     }
 
     /**
      * Returns the number of different types of this value.
-     * The possible types are here boolean/string/number/function/array/native/dom/other. Undef and null are ignored, except if they are the only value.
+     * The possible types are here
+     * boolean/string/number/function/array/native/dom/other. Undef and null are
+     * ignored, except if they are the only value.
      * Polymorphic and unknown values also count as 0.
      */
     public int typeSize() {
@@ -4020,14 +4090,14 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                     is_array = true;
                 else if (objlabel.isHostObject()) {
                     switch (objlabel.getHostObject().getAPI().getShortName()) {
-                    case "native":
-                        is_native = true;
-                        break;
-                    case "dom":
-                        is_dom = true;
-                        break;
-                    default:
-                        is_other = true;
+                        case "native":
+                            is_native = true;
+                            break;
+                        case "dom":
+                            is_dom = true;
+                            break;
+                        default:
+                            is_other = true;
                     }
                 } else
                     is_other = true;
@@ -4057,35 +4127,35 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Constructs a value as a copy of this value but for reading attributes.
      */
     public Value restrictToAttributes() {
-        Value r = new Value(this);
-        r.num = null;
-        r.str = null;
-        r.var = null;
-        r.flags &= ATTR | ABSENT | UNKNOWN;
+        int new_flags = flags & (ATTR | ABSENT | UNKNOWN);
         if (!isUnknown() && isMaybePresent())
-            r.flags |= UNDEF; // just a dummy value, to satisfy the representation invariant for PRESENT
-        r.excluded_strings = r.included_strings = null;
+            new_flags |= UNDEF; // just a dummy value, to satisfy the representation invariant for PRESENT
+        Value r = new Value(new_flags, null, null, object_labels, getters, setters, null, null,
+                freeVariablePartitioning, var);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of this value but with all attributes set to bottom.
+     * Constructs a value as a copy of this value but with all attributes set to
+     * bottom.
      */
     public Value restrictToNonAttributes() {
-        Value r = new Value(this);
-        r.flags &= ~(PROPERTYDATA | ABSENT | PRESENT_DATA | PRESENT_ACCESSOR);
+        int new_flags = flags & ~(PROPERTYDATA | ABSENT | PRESENT_DATA | PRESENT_ACCESSOR);
+        Value r = this.withFlags(new_flags);
         return canonicalize(r);
     }
 
     /**
-     * Constructs a value as a copy of the given value but with the attributes from this value.
+     * Constructs a value as a copy of the given value but with the attributes from
+     * this value.
      */
     public Value replaceValue(Value v) {
-        Value r = new Value(v);
-        r.flags &= ~(PROPERTYDATA | ABSENT | PRESENT_DATA | PRESENT_ACCESSOR);
-        r.flags |= flags & (PROPERTYDATA | ABSENT);
-        if (r.var != null)
-            r.flags |= flags & (PRESENT_DATA | PRESENT_ACCESSOR);
+        int new_flags = flags;
+        new_flags &= ~(PROPERTYDATA | ABSENT | PRESENT_DATA | PRESENT_ACCESSOR);
+        new_flags |= new_flags & (PROPERTYDATA | ABSENT);
+        if (var != null)
+            new_flags |= new_flags & (PRESENT_DATA | PRESENT_ACCESSOR);
+        Value r = this.withFlags(new_flags);
         return canonicalize(r);
     }
 
@@ -4102,7 +4172,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      */
     public boolean isMaybeSingleAllocationSite() {
         checkNotPolymorphicOrUnknown();
-        return object_labels != null && newSet(getObjectSourceLocations()).size() == 1;
+        return object_labels != null && getObjectSourceLocations().size() == 1;
     }
 
     /**
@@ -4141,7 +4211,7 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
      * Returns true if this value contains the given object label.
      * 
      * @throws AnalysisException
-     *                               if the value contains getters or setters.
+     *                           if the value contains getters or setters.
      */
     public boolean containsObjectLabel(ObjectLabel objlabel) {
         return (object_labels != null && object_labels.contains(objlabel)) ||
@@ -4155,11 +4225,11 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         if (!isMaybeZero()) {
             return this;
         }
-        Value r = new Value(this);
+        Value r = this;
         if (r.num != null && isZero(r.num)) {
-            r.num = null;
+            r = r.withNum(null);
         }
-        r.flags &= ~NUM_ZERO;
+        r = r.removeFlags(NUM_ZERO);
         return canonicalize(r);
     }
 
@@ -4218,75 +4288,77 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         checkNotPolymorphicOrUnknown();
         if (!isMaybeInf())
             return this;
-        Value r = new Value(this);
-        r.flags &= ~NUM_INF;
+        Value r = this.removeFlags(NUM_INF);
         return canonicalize(r);
     }
 
     /**
-     * Returns a value that models a safe approximation of the intersection of this value and the given value, using strict equality.
+     * Returns a value that models a safe approximation of the intersection of this
+     * value and the given value, using strict equality.
      * Models the 'true' branch of if(...===...){...}else{...}.
      */
     public Value restrictToStrictEquals(Value v) {
         checkNotPolymorphicOrUnknown();
         if (v.getters != null)
             return this; // getters could return anything, so must keep everything to remain safe
-        Value r = new Value(this);
+        Value r = this;
         // handle booleans and null
-        r.flags &= v.flags | ~(BOOL | NULL);
+        r = r.withFlags(r.flags & (v.flags | ~(BOOL | NULL)));
         // handle undefined and absent
         if ((v.flags & (UNDEF | ABSENT)) == 0) // absent treated as undefined here
-            r.flags &= ~(UNDEF | ABSENT); // if v is neither undefined nor absent, then the same holds for the result
+            r = r.withFlags(r.flags & ~(UNDEF | ABSENT)); // if v is neither undefined nor absent, then the same holds
+                                                          // for the result
         // handle numbers
         if (isMaybeSingleNum()) {
             if (!v.isMaybeNum(num))
-                r.num = null;
+                r = r.withNum(null);
         } else { // this is fuzzy number (or not a number)
             if (v.isMaybeSingleNum()) {
                 if (isMaybeNum(v.num))
-                    r.num = v.num;
-                r.flags &= ~NUM;
+                    r = r.withNum(v.num);
+                r = r.withFlags(r.flags & ~NUM);
             } else {
-                r.flags &= v.flags | ~NUM;
+                r = r.withFlags(r.flags & (v.flags | ~NUM));
             }
         }
         // handle strings
         if (isMaybeSingleStr()) {
             // this is single string
             if (!v.isMaybeStr(str))
-                r.str = null;
+                r = r.withStr(null);
         } else if (v.isMaybeSingleStr()) {
             // this is fuzzy string (or not a string), v is single string
             if (isMaybeStr(v.str))
-                r.str = v.str;
+                r = r.withStr(v.str);
             else
-                r.str = null;
-            r.flags &= ~STR;
-            r.included_strings = r.excluded_strings = null;
+                r = r.withStr(null);
+            r = r.withFlags(r.flags & ~STR)
+                    .withIncludedStrings(null).withExcludedStrings(null);
         } else {
             // both are fuzzy string (or not string)
             if (included_strings != null || v.included_strings != null) {
                 if (included_strings != null) {
-                    r.included_strings = newSet(r.included_strings);
                     if (v.included_strings != null) {
                         // both are included_strings
-                        r.included_strings.retainAll(v.included_strings);
+                        PersistentSet<String> new_included_strings = r.included_strings
+                                .retainAll(v.included_strings.toMutableSet());
+                        r = r.withIncludedStrings(new_included_strings);
                     } else {
                         // this is included_strings, v isn't
-                        r.included_strings.removeIf(s -> !v.isMaybeStr(s));
+                        PersistentSet<String> new_included_strings = r.included_strings.removeIf(s -> !v.isMaybeStr(s));
+                        r = r.withIncludedStrings(new_included_strings);
                     }
                 } else {
                     // this is not included_strings, but v is
-                    r.included_strings = newSet(v.included_strings);
-                    r.included_strings.removeIf(s -> !isMaybeStr(s));
+                    PersistentSet<String> new_included_strings = v.included_strings.removeIf(s -> !isMaybeStr(s));
+                    r = r.withIncludedStrings(new_included_strings);
                 }
-                r.excluded_strings = null;
-                r.str = null;
-                r.flags &= ~STR;
-                r.included_strings.forEach(s -> r.joinSingleStringOrPrefixStringAsFuzzyNonPrefix(s, false));
+                r = r.withExcludedStrings(null).withStr(null).withFlags(flags & ~STR_PREFIX);
+                for (String s : r.included_strings)
+                    r = r.joinSingleStringOrPrefixStringAsFuzzyNonPrefix(s, false);
                 r.fixSingletonIncluded();
                 if (r.included_strings != null && r.included_strings.isEmpty())
-                    r.included_strings = null;
+                    r = r.withIncludedStrings(null);
             } else {
                 if ((flags & STR_JSON) != 0 || (v.flags & STR_JSON) != 0) {
                     // TODO: handle JSON strings?
@@ -4300,14 +4372,13 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                             p = v.str;
                         else
                             p = null;
-                        r.flags &= ~STR;
+                        r = r.removeFlags(STR);
                         if (p != null) {
                             // one is prefix of the other, take the longest
-                            r.str = p;
-                            r.flags |= STR_PREFIX;
+                            r = r.withStr(p).addFlags(STR_PREFIX);
                         } else {
                             // incompatible prefixes
-                            r.str = null;
+                            r = r.withStr(null);
                         }
                     } else if ((flags & STR_PREFIX) != 0) {
                         // this is prefix string, v isn't
@@ -4315,66 +4386,74 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                                 ((v.flags & STR_OTHERNUM) != 0 && !Strings.containsNonNumberCharacters(str)) ||
                                 ((v.flags & STR_IDENTIFIER) != 0 && Strings.isIdentifierParts(str)) ||
                                 ((v.flags & STR_OTHERIDENTIFIERPARTS) != 0 && Strings.isOtherIdentifierParts(str)) ||
-                                ((v.flags & STR_OTHER) != 0 && (Strings.containsNonNumberCharacters(str) || !Strings.isIdentifierParts(str))))) {
+                                ((v.flags & STR_OTHER) != 0 && (Strings.containsNonNumberCharacters(str)
+                                        || !Strings.isIdentifierParts(str))))) {
                             // incompatible
-                            r.flags &= ~STR;
-                            r.str = null;
+                            r = r.removeFlags(STR).withStr(null);
                         }
                     } else {
                         // v is prefix string, this isn't
-                        if ((flags & (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) == (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) {
+                        if ((flags & (STR_OTHERNUM | STR_IDENTIFIERPARTS | STR_OTHER)) == (STR_OTHERNUM
+                                | STR_IDENTIFIERPARTS | STR_OTHER)) {
                             // this is Str
-                            r.flags &= ~STR;
-                            r.flags = STR_PREFIX;
-                            r.str = v.str;
+                            r = r.withFlags(STR_PREFIX).withStr(v.str);
                         } else {
                             if (!Strings.isArrayIndex(v.str))
-                                r.flags &= ~STR_UINT; // can't be UINT if the prefix string must begin with a non-array-index number
+                                r = r.removeFlags(STR_UINT); // can't be UINT if the prefix string must begin
+                                                             // with a non-array-index number
                             if (Strings.containsNonNumberCharacters(v.str))
-                                r.flags &= ~STR_OTHERNUM; // can't be OTHERHUM if the prefix string contains non-number chars
+                                r = r.removeFlags(STR_OTHERNUM); // can't be OTHERNUM if the prefix string
+                                                                 // contains non-number chars
                             if (!Strings.isIdentifierParts(v.str))
-                                r.flags &= ~(STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS); // can't be IDENTIFIER or OTHERIDENTIFIERPARTS if the prefix string contains non-identifier-parts chars
+                                r = r.removeFlags(STR_IDENTIFIER | STR_OTHERIDENTIFIERPARTS); // can't be IDENTIFIER if
+                                                                                              // the prefix string
+                                                                                              // contains
+                                                                                              // non-identifier-parts
+                                                                                              // chars
                         }
                     }
                 } else {
-                    // both are fuzzy (or not string) and not JSON nor prefix: intersect the STR flags
-                    r.flags &= v.flags | ~STR;
+                    // both are fuzzy (or not string) and not JSON nor prefix: intersect the STR
+                    // flags
+                    r = r.withFlags(r.flags & v.flags | ~STR);
                 }
                 if (v.excluded_strings != null) {
                     // v has excluded string, so add them to r
-                    if (r.excluded_strings != null)
-                        r.excluded_strings = newSet(r.excluded_strings);
-                    else
-                        r.excluded_strings = newSet();
-                    r.excluded_strings.addAll(v.excluded_strings);
+                    if (r.excluded_strings == null)
+                        r = r.withExcludedStrings(newPersistentSet());
+                    r = r.withExcludedStrings(r.excluded_strings.union(v.excluded_strings));
                 }
                 if (r.excluded_strings != null) {
                     // remove excluded strings that don't match any of the STR flags
-                    r.excluded_strings = r.excluded_strings.stream().filter(r::isMaybeStrIgnoreIncludedExcluded).collect(Collectors.toSet());
+                    PersistentSet<String> new_excluded_strings = newPersistentSet(
+                            r.excluded_strings.stream().filter(r::isMaybeStrIgnoreIncludedExcluded)
+                                    .collect(Collectors.toSet()));
+                    r = r.withExcludedStrings(new_excluded_strings);
                     if (r.excluded_strings.isEmpty())
-                        r.excluded_strings = null;
+                        r = r.withExcludedStrings(null);
                 }
             }
         }
         // handle objects and symbols
         if (v.object_labels == null)
-            r.object_labels = null;
+            r = r.withObjectLabels(null);
         else if (r.object_labels != null) {
-            r.object_labels = newSet(r.object_labels);
-            r.object_labels.retainAll(v.object_labels);
+            r = r.withObjectLabels(r.object_labels.retainAll(v.object_labels.toMutableSet()));
             if (r.object_labels.isEmpty())
-                r.object_labels = null;
+                r = r.withObjectLabels(null);
         }
         return canonicalize(r);
     }
 
     /**
-     * Returns a value that models a safe approximation of this value minus the given value, using strict equality.
+     * Returns a value that models a safe approximation of this value minus the
+     * given value, using strict equality.
      * Models the 'false' branch of if(...===...){...}else{...}.
      */
     public Value restrictToStrictNotEquals(Value v) {
         checkNotPolymorphicOrUnknown();
-        if (v.isMaybeFuzzyStr() || v.isMaybeFuzzyNum() || (v.object_labels != null && (v.object_labels.size() > 1 || !v.object_labels.iterator().next().isSingleton())))
+        if (v.isMaybeFuzzyStr() || v.isMaybeFuzzyNum() || (v.object_labels != null
+                && (v.object_labels.size() > 1 || !v.object_labels.iterator().next().isSingleton())))
             return this; // v is not a single concrete value, so can't restrict anything
         boolean vIsUndefOrAbsent = v.isMaybeUndef() || v.isMaybeAbsent();
         boolean vIsNull = v.isMaybeNull();
@@ -4392,58 +4471,63 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
                 (vIsObjectOrSymbol ? 1 : 0) != 1)
             return this; // v is not a single value, so can't restrict anything
         if (vIsString) {
-            return restrictToNotStrings(Collections.singleton(v.getStr()));
+            return restrictToNotStrings(newPersistentSet(Collections.singleton(v.getStr())));
         } else {
-            Value r = new Value(this);
+            Value r = this;
             if (vIsUndefOrAbsent)
-                r.flags &= ~(UNDEF | ABSENT);
+                r = r.removeFlags(UNDEF | ABSENT);
             else if (vIsNull)
-                r.flags &= ~NULL;
+                r = r.removeFlags(NULL);
             else if (vIsTrue)
-                r.flags &= ~BOOL_TRUE;
+                r = r.removeFlags(BOOL_TRUE);
             else if (vIsFalse)
-                r.flags &= ~BOOL_FALSE;
+                r = r.removeFlags(BOOL_FALSE);
             else if (vIsNumber) {
                 Double vnum = v.getNum();
                 if (r.num != null && r.num.equals(vnum) && !Double.isNaN(vnum)) // note: NaN !== NaN
-                    r.num = null;
-                // TODO: could also handle NUM_ZERO and NUM_NAN (but treated as fuzzy by isMaybeFuzzyNum above)
-            } else if (r.object_labels != null) { // vIsObjectOrSymbol must be true here, and there can be only one object label
-                r.object_labels = newSet(r.object_labels);
-                r.object_labels.remove(v.object_labels.iterator().next());
+                    r = r.withNum(null);
+                // TODO: could also handle NUM_ZERO and NUM_NAN (but treated as fuzzy by
+                // isMaybeFuzzyNum above)
+            } else if (r.object_labels != null) { // vIsObjectOrSymbol must be true here, and there can be only one
+                                                  // object label
+                r = r.withObjectLabels(r.object_labels.remove(v.object_labels.iterator().next()));
                 if (r.object_labels.isEmpty())
-                    r.object_labels = null;
+                    r = r.withObjectLabels(null);
             }
             return canonicalize(r);
         }
     }
 
     /**
-     * Returns a value that models a safe approximation of the intersection of this value and the given value, using loose equality.
+     * Returns a value that models a safe approximation of the intersection of this
+     * value and the given value, using loose equality.
      * Models the 'true' branch of if(...==...){...}else{...}.
      */
     public Value restrictToLooseEquals(Value v) {
         if (v.object_labels != null)
             return this; // just give up (object could be equal to anything)
-        Value r = new Value(this);
+        Value r = this;
         if (included_strings != null || v.included_strings != null) {
             if (included_strings != null) {
-                r.included_strings = newSet(r.included_strings);
                 if (v.included_strings != null) {
                     // both are included_strings
-                    r.included_strings.retainAll(v.included_strings);
+                    PersistentSet<String> new_included_strings = r.included_strings
+                            .retainAll(v.included_strings.toMutableSet());
+                    r = r.withIncludedStrings(new_included_strings);
                 } else {
                     // this is included_strings, v isn't
-                    r.included_strings.removeIf(s -> !v.isMaybeStr(s));
+                    PersistentSet<String> new_included_strings = r.included_strings.removeIf(s -> !v.isMaybeStr(s));
+                    r = r.withIncludedStrings(new_included_strings);
                 }
             } else {
                 // this is not included_strings, but v is
-                r.included_strings = newSet(v.included_strings);
-                r.included_strings.removeIf(s -> !isMaybeStr(s));
+                PersistentSet<String> new_included_strings = v.included_strings.removeIf(s -> !isMaybeStr(s));
+                r = r.withIncludedStrings(new_included_strings);
             }
-            r.excluded_strings = null;
+            r = r.withExcludedStrings(null);
         } else {
-            boolean vIsNotUndefAbsentOrNull = !(v.isMaybeUndef() || v.isMaybeAbsent() || v.isMaybeNull()); // treated the same, so group together
+            // treated the same, so group together
+            boolean vIsNotUndefAbsentOrNull = !(v.isMaybeUndef() || v.isMaybeAbsent() || v.isMaybeNull());
             boolean vIsNotTrue = !v.isMaybeTrue();
             boolean vIsNotFalse = !v.isMaybeFalse();
             boolean vIsNotNumber = v.isNotNum();
@@ -4480,38 +4564,41 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
             boolean vIsNotNumericStringZero = vNumericStringNumber != null && vNumericStringNumber != 0;
             // remove undef, absent, and null if v is definitely not undef, absent, or null
             if (vIsNotUndefAbsentOrNull) {
-                r.flags &= ~(UNDEF | ABSENT | NULL);
+                r = r.removeFlags(UNDEF | ABSENT | NULL);
             }
             // remove true if v is definitely not true
             if (vIsNotTrue) {
-                r.flags &= ~BOOL_TRUE;
+                r = r.removeFlags(BOOL_TRUE);
             }
             // remove all strings if v is definitely not a string, a number, or false
             if (vIsNotString && vIsNotNumber && vIsNotFalse) {
-                r.flags &= ~STR;
-                r.str = null;
-                r.included_strings = r.excluded_strings = null;
+                r = r.removeFlags(STR).withStr(null).withIncludedStrings(null).withExcludedStrings(null);
             }
-            // remove all numbers if v is definitely not a number, false, the empty string, or a numeric string
+            // remove all numbers if v is definitely not a number, false, the empty string,
+            // or a numeric string
             if (vIsNotNumber && vIsNotFalse && vIsNotEmptyString && vIsNotNumericString) {
-                r.flags &= ~NUM;
-                r.num = null;
+                r = r.removeFlags(NUM).withNum(null);
             }
-            // remove 0, false, "", " 0.0 ", etc. if v is definitely not 0, false, "", or " 0.0 ", etc.
+            // remove 0, false, "", " 0.0 ", etc. if v is definitely not 0, false, "", or "
+            // 0.0 ", etc.
             if (vIsNotZero && vIsNotFalse && vIsNotEmptyString && vIsNotNumericStringZero) {
-                r.flags &= ~(BOOL_FALSE | NUM_ZERO);
+                r = r.removeFlags(NUM_ZERO | BOOL_FALSE);
                 if (r.num != null && r.num == 0)
-                    r.num = null;
-                r.removeIncludedAddExcludedString("");
-                r.removeIncludedAddExcludedString("0"); // could also exclude "0.0", " -0 ", etc.
+                    r = r.withNum(null);
+                r = r.removeIncludedAddExcludedString("");
+                r = r.removeIncludedAddExcludedString("0"); // could also exclude "0.0", " -0 ", etc.
             }
-            // remove non-zero number if v is definitely not that number or a string that is coerced to that number
-            if (r.num != null && r.num != 0 && !v.isMaybeNum(r.num) && vNumericStringNumber != null && vNumericStringNumber.doubleValue() != r.num.doubleValue()) {
-                r.num = null;
+            // remove non-zero number if v is definitely not that number or a string that is
+            // coerced to that number
+            if (r.num != null && r.num != 0 && !v.isMaybeNum(r.num) && vNumericStringNumber != null
+                    && vNumericStringNumber.doubleValue() != r.num.doubleValue()) {
+                r = r.withNum(null);
             }
-            // remove non-empty string if v is definitely not that string or a number that is coerced to that string
-            if (isMaybeSingleStr() && !str.isEmpty() && !v.isMaybeStr(str) && (vIsNotNumber || thisIsNotNumericString)) {
-                r.str = null;
+            // remove non-empty string if v is definitely not that string or a number that
+            // is coerced to that string
+            if (isMaybeSingleStr() && !str.isEmpty() && !v.isMaybeStr(str)
+                    && (vIsNotNumber || thisIsNotNumericString)) {
+                r = r.withStr(null);
             }
         }
         r.cleanupIncludedExcluded();
@@ -4519,13 +4606,18 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
     }
 
     /**
-     * Returns a value that models a safe approximation of this value minus the given value, using loose equality.
+     * Returns a value that models a safe approximation of this value minus the
+     * given value, using loose equality.
      * Models the 'false' branch of if(...==...){...}else{...}.
      */
     public Value restrictToLooseNotEquals(Value v) {
-        if (v.isMaybeFuzzyStr() || v.isMaybeFuzzyNum() || v.object_labels != null) // TODO: NaN is a treated as a fuzzy num, so can't restrict NaN here (although NaN is not loosely equal to itself)
+        if (v.isMaybeFuzzyStr() || v.isMaybeFuzzyNum() || v.object_labels != null) // TODO: NaN is a treated as a fuzzy
+                                                                                   // num, so can't restrict NaN here
+                                                                                   // (although NaN is not loosely equal
+                                                                                   // to itself)
             return this; // v is fuzzy or object, just give up (object could be equal to anything)
-        boolean vIsUndefOrAbsentOrNull = v.isMaybeUndef() || v.isMaybeAbsent() || v.isMaybeNull(); // treated the same, so group together
+        boolean vIsUndefOrAbsentOrNull = v.isMaybeUndef() || v.isMaybeAbsent() || v.isMaybeNull(); // treated the same,
+                                                                                                   // so group together
         boolean vIsTrue = v.isMaybeTrue();
         boolean vIsFalse = v.isMaybeFalse();
         boolean vIsString = !v.isNotStr();
@@ -4557,88 +4649,103 @@ public class Value implements Undef, Null, Bool, Num, Str, PKeys, DeepImmutable,
         }
         boolean vIsStringZero = vNumberIfStringNumeric != null && vNumberIfStringNumeric == 0; // includes -0
         boolean vIsStringEmpty = vIsString && v.str.trim().isEmpty();
-        Value r = new Value(this);
+        Value r = this;
         if (vIsUndefOrAbsentOrNull) {
             // can't be undef, absent, or null
-            r.flags &= ~(UNDEF | ABSENT | NULL);
+            r = r.removeFlags(UNDEF | ABSENT | NULL);
         } else if (vIsTrue) {
             // can't be true
-            r.flags &= ~BOOL_TRUE;
+            r = r.removeFlags(BOOL_TRUE);
         } else if (vIsNumberZero || vIsFalse) {
             // can't be 0, false, "", " 0.0 ", etc.
             if (r.num != null && r.num == 0)
-                r.num = null;
-            r.flags &= ~(NUM_ZERO | BOOL_FALSE);
+                r = r.withNum(null);
+            r = r.removeFlags(NUM_ZERO | BOOL_FALSE);
             if (thisNumberIfStringNumeric != null && thisNumberIfStringNumeric == 0)
-                r.str = null;
-            r.removeIncludedAddExcludedString("");
-            r.removeIncludedAddExcludedString("0"); // could also exclude "0.0", " -0 ", etc.
+                r = r.withStr(null);
+            r = r.removeIncludedAddExcludedString("");
+            r = r.removeIncludedAddExcludedString("0"); // could also exclude "0.0", " -0 ", etc.
         } else if (vIsNumber) {
             // can't be that (non-zero) number, also not as string
             if (r.num != null && r.num.doubleValue() == v.num.doubleValue()) // using == to handle +/- 0 correctly
-                r.num = null;
-            if (thisNumberIfStringNumeric != null && v.num != null && thisNumberIfStringNumeric.doubleValue() == v.num.doubleValue())
-                r.str = null;
+                r = r.withNum(null);
+            if (thisNumberIfStringNumeric != null && v.num != null
+                    && thisNumberIfStringNumeric.doubleValue() == v.num.doubleValue())
+                r = r.withStr(null);
             if (v.num != null)
-                r.removeIncludedAddExcludedString(Double.toString(v.num));
+                r = r.removeIncludedAddExcludedString(Double.toString(v.num));
         } else if (vIsStringZero || vIsStringEmpty) {
             // can't be 0, false, or that string
             if (r.num != null && r.num == 0)
-                r.num = null;
-            r.flags &= ~(NUM_ZERO | BOOL_FALSE);
+                r = r.withNum(null);
+            r = r.withFlags(flags & ~(NUM_ZERO | BOOL_FALSE));
             if (r.isMaybeSingleStr() && r.str.equals(v.str))
-                r.str = null;
-            r.removeIncludedAddExcludedString(v.str);
+                r = r.withStr(null);
+            r = r.removeIncludedAddExcludedString(v.str);
         } else { // vIsString must be true
             // can't be that (non-zero, non-empty) string, also not as number
             if (r.isMaybeSingleStr() && r.str.equals(v.str))
-                r.str = null;
-            if (vNumberIfStringNumeric != null && r.num != null && vNumberIfStringNumeric.doubleValue() == r.num.doubleValue())
-                r.num = null;
-            r.removeIncludedAddExcludedString(v.str);
+                r = r.withStr(null);
+            if (vNumberIfStringNumeric != null && r.num != null
+                    && vNumberIfStringNumeric.doubleValue() == r.num.doubleValue())
+                r = r.withNum(null);
+            r = r.removeIncludedAddExcludedString(v.str);
         }
-        r.cleanupIncludedExcluded();
+        r = r.cleanupIncludedExcluded();
         return canonicalize(r);
     }
 
-    private void cleanupIncludedExcluded() {
+    private Value cleanupIncludedExcluded() {
+
+        int new_flags = flags;
+        String new_str = str;
+        PersistentSet<String> new_included_strings = included_strings;
+        PersistentSet<String> new_excluded_strings = excluded_strings;
+
         if (included_strings != null) {
             if (!isMaybeStrPrefix()) {
                 // clean up flags according to included_strings
-                flags &= ~STR;
-                excluded_strings = null;
-                included_strings.forEach(s -> joinSingleStringOrPrefixStringAsFuzzyNonPrefix(s, false));
+                new_flags &= ~STR;
+                new_excluded_strings = null;
+                new_included_strings.forEach(s -> joinSingleStringOrPrefixStringAsFuzzyNonPrefix(s, false));
             }
             fixSingletonIncluded();
             if (included_strings != null && included_strings.isEmpty())
-                included_strings = null;
+                new_included_strings = null;
         }
         if (excluded_strings != null) {
             // remove excluded strings that don't match any of the STR flags
-            excluded_strings = excluded_strings.stream().filter(this::isMaybeStrIgnoreIncludedExcluded).collect(Collectors.toSet());
+            new_excluded_strings = newPersistentSet(excluded_strings.stream()
+                    .filter(this::isMaybeStrIgnoreIncludedExcluded).collect(Collectors.toSet()));
             if (isMaybeSingleStr() && excluded_strings.contains(str)) {
-                excluded_strings.remove(str);
-                str = null;
+                new_excluded_strings = excluded_strings.remove(str);
+                new_str = null;
             }
-            if (excluded_strings.isEmpty())
-                excluded_strings = null;
+            if (new_excluded_strings.isEmpty())
+                new_excluded_strings = null;
         }
+
+        return this.withFlags(new_flags).withStr(new_str).withIncludedStrings(new_included_strings)
+                .withExcludedStrings(new_excluded_strings);
     }
 
-    private void removeIncludedAddExcludedString(String s) {
-        if (included_strings != null) {
-            included_strings = newSet(included_strings);
-            included_strings.remove(s);
+    private Value removeIncludedAddExcludedString(String s) {
+        PersistentSet<String> inc_str = included_strings;
+        PersistentSet<String> exc_str = excluded_strings;
+
+        if (inc_str != null) {
+            inc_str = inc_str.remove(s);
             fixSingletonIncluded();
             if (included_strings != null && included_strings.isEmpty())
-                included_strings = null;
+                inc_str = null;
         } else {
             if (excluded_strings == null)
-                excluded_strings = newSet();
+                exc_str = newPersistentSet();
             else
-                excluded_strings = newSet(excluded_strings);
-            excluded_strings.add(s);
+                exc_str = excluded_strings;
+            exc_str = exc_str.add(s);
         }
+        return this.withIncludedStrings(inc_str).withExcludedStrings(exc_str);
     }
 
     /**

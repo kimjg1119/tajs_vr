@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import dk.brics.tajs.lattice.Joinable;
+
 import static dk.brics.tajs.util.Collections.newMap;
 
 /**
@@ -86,27 +88,32 @@ public class Canonicalizer {
     }
 
     /**
-     * Canonicalizes a set into an immutable version.
+     * Canonicalizes a persistent set.
+     * Persistent set is always immutable, however, caching is still useful for performance reasons.
      */
-    public <T extends DeepImmutable> Set<T> canonicalizeSet(Set<T> set) {
-        return canonicalizeViaImmutableBox(set);
+    public <T extends DeepImmutable> PersistentSet<T> canonicalizeSet(PersistentSet<T> set) {
+        if (set == null || set.isEmpty())
+            return null;
+        return canonicalize(set);
     }
 
     /**
-     * Canonicalizes a map into an immutable version.
+     * Canonicalizes a persisent map.
+     * Same with persistent set, persistent map is always immutable.
      */
-    public <K, V extends DeepImmutable> Map<K, V> canonicalizeMap(Map<K, V> map) {
+    public <K, V extends Joinable<V>> PersistentMap<K, V> canonicalizeMap(PersistentMap<K, V> map) {
         if (map == null || map.isEmpty())
             return null;
 
-        return canonicalizeViaImmutableBox(map);
+        return canonicalize(map);
     }
 
     /**
-     * Canonicalizes a set of strings into an immutable version.
+     * Canonicalizes a string set.
+     * FIXME: The strings are not canonicalized, only the set itself. This might be checked in the future.
      */
-    public Set<String> canonicalizeStringSet(Set<String> strings) {
-        return canonicalizeViaImmutableBox(strings);
+    public PersistentSet<String> canonicalizeStringSet(PersistentSet<String> strings) {
+        return strings;
     }
 
     /**
@@ -140,8 +147,10 @@ public class Canonicalizer {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
             ImmutableBox<?> that = (ImmutableBox<?>) o;
             return Objects.equals(element, that.element);
         }

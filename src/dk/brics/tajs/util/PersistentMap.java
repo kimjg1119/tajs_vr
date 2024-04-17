@@ -2,12 +2,14 @@ package dk.brics.tajs.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 
 import dk.brics.tajs.lattice.Joinable;
 
-public interface PersistentMap<K, V extends Joinable<V>> {
+public interface PersistentMap<K, V extends Joinable<V>> extends DeepImmutable, Joinable<PersistentMap<K, V>> {
 
-  PersistentMap<K, V> strongUpdate(K key, V value);
+  PersistentMap<K, V> put(K key, V value);
 
   PersistentMap<K, V> weakUpdate(K key, V value);
 
@@ -17,9 +19,14 @@ public interface PersistentMap<K, V extends Joinable<V>> {
 
   PersistentMap<K, V> remove(K key);
 
+  @Override
   PersistentMap<K, V> join(PersistentMap<K, V> other);
 
   int size();
+
+  default boolean isEmpty() {
+    return this.size() == 0;
+  }
 }
 
 class MergeableMap<K, V extends Joinable<V>> implements PersistentMap<K, V> {
@@ -34,7 +41,7 @@ class MergeableMap<K, V extends Joinable<V>> implements PersistentMap<K, V> {
   }
 
   @Override
-  public PersistentMap<K, V> strongUpdate(K key, V value) {
+  public PersistentMap<K, V> put(K key, V value) {
     Map<K, V> newMap = new HashMap<>(this.map);
     newMap.put(key, value);
     return new MergeableMap<>(newMap);
@@ -89,4 +96,5 @@ class MergeableMap<K, V extends Joinable<V>> implements PersistentMap<K, V> {
     }
     return new MergeableMap<>(newMap);
   }
+
 }

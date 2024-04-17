@@ -154,11 +154,11 @@ public class Collections {
     }
 
     /**
-     * Constructs a new mutable singleton set containing the given element.
-     * Note that the set is mutable (created by {@link #newSet()}), unlike java.util.Collections.singleton.
+     * Constructs a new immutable singleton set containing the given element.
      */
-    public static <T> Set<T> singleton(T t) {
-        Set<T> set = newSet();
+
+    public static <T> PersistentSet<T> singleton(T t) {
+        PersistentSet<T> set = new MergeableSet<>();
         set.add(t);
         return set;
     }
@@ -185,6 +185,10 @@ public class Collections {
             return new HashSet<>(8);
     }
 
+    public static <T> PersistentSet<T> newPersistentSet() {
+        return new MergeableSet<>();
+    }
+
     /**
      * Constructs a new set from the given collection.
      */
@@ -195,6 +199,12 @@ public class Collections {
             return new HybridArrayHashSet<>(s);
         else
             return new HashSet<>(s);
+    }
+
+    public static <T> PersistentSet<T> newPersistentSet(Collection<T> s) {
+        PersistentSet<T> set = new MergeableSet<>();
+        set.addAll(s);
+        return set;
     }
 
     /**
@@ -286,7 +296,7 @@ public class Collections {
     /**
      * Applies f to each element in the collection, producing a new collection.
      */
-    public static <C,T> Collection<T> map(Collection<C> ts, Function<C,T> f) {
+    public static <C, T> Collection<T> map(Collection<C> ts, Function<C, T> f) {
         return ts.stream().map(f).collect(Collectors.toList());
     }
 
